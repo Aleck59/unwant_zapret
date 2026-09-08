@@ -322,3 +322,34 @@ class TestIdleCost:
             assert core.enforcer.parsed == 0, "наблюдатель работал, хотя ничего не запускалось"
         finally:
             watcher.stop()
+
+
+class TestOverflow:
+    """Что происходит, когда на машине разом запускаются тысячи процессов."""
+
+    def test_full_queue_does_not_stall_the_source(self) -> None:
+        """Ждать на полной очереди нельзя: поток встанет, труба от PowerShell
+        забьётся, и потеряются не часть событий, а все следующие. Лишнее
+        отбрасывается, а подберёт его страховочная выборка."""
+        import queue as queue_mod
+
+        from strazh.watch.procevents import PollingSource
+
+        sink: queue_mod.Queue = queue_mod.Queue(maxsize=2)
+        listing: list[tuple[int, str, str | None]] = [(1, "explorer.exe", None)]
+        source = PollingSource(sink, lambda: list(listing), interval=0.05)
+
+        # Источник запоминает, что уже работало, поэтому «лавина» появляется
+        # после запуска — как и на настоящей машине.
+        assert source.start()
+        listing.extend((index, f"процесс-{index}.exe", None) for index in range(2, 200))
+        try:
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline and sink.qsize() < 2:
+                time.sleep(0.02)
+            assert sink.qsize() == 2, "очередь не наполнилась"
+            time.sleep(0.3)
+            assert source.alive, "источник встал на полной очереди"
+        finally:
+            source.stop()
+        assert not source.alive

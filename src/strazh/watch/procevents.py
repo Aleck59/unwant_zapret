@@ -121,6 +121,7 @@ class WmiEventSource(EventSource):
 
     def __init__(self, sink: queue.Queue[ProcessEvent]) -> None:
         self._sink = sink
+        self.dropped = 0
         self._process: subprocess.Popen[str] | None = None
         self._reader: threading.Thread | None = None
         self._ready = threading.Event()
@@ -178,7 +179,15 @@ class WmiEventSource(EventSource):
             except ValueError:
                 continue
             if name:
-                self._sink.put(ProcessEvent(pid=pid, name=name))
+                # Складываем без ожидания. Полная очередь означает, что на
+                # машине разом запустились тысячи процессов — сборка, установка
+                # обновлений. Ждать здесь нельзя: поток чтения встанет, труба
+                # от PowerShell забьётся, и мы потеряем не часть событий, а
+                # все следующие. Пропущенное подберёт страховочная выборка.
+                try:
+                    self._sink.put_nowait(ProcessEvent(pid=pid, name=name))
+                except queue.Full:
+                    self.dropped += 1
         # Поток вывода закончился — значит, PowerShell завершился.
         self._ready.set()
 
@@ -233,7 +242,8 @@ class PollingSource(EventSource):
                 for pid, name, _ in self._lister():
                     current.add(pid)
                     if pid not in self._known:
-                        self._sink.put(ProcessEvent(pid=pid, name=name))
+                        with contextlib.suppress(queue.Full):
+                            self._sink.put_nowait(ProcessEvent(pid=pid, name=name))
                 self._known = current
             except Exception:
                 time.sleep(self._interval)
