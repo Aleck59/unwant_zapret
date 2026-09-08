@@ -125,8 +125,66 @@ jobs:
             if (-not (Test-Path "dist\$name")) { throw "не собран $name" }
           }
         shell: pwsh
+      - name: Узнать версию
+        id: version
+        shell: pwsh
+        run: |
+          $v = python -c "import sys; sys.path.insert(0,'src'); from strazh.version import __version__; print(__version__)"
+          "value=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Собрать установщик
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Host "Inno Setup нет в образе — ставлю"
+            choco install innosetup -y --no-progress | Out-Null
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe не найден после установки" }
+          & $iscc /DAppVersion=${{ steps.version.outputs.value }} packaging\strazh.iss
+          if ($LASTEXITCODE -ne 0) { throw "установщик не собрался" }
+          Get-ChildItem dist\installer
+
+      - name: Установить, проверить, удалить
+        # Главное обещание установщика — что удаление снимает изменения в
+        # системе, а не просто стирает файлы. Проверяется оно единственным
+        # честным способом: программа ставится по-настоящему, вместе с
+        # заданием наблюдения и включённой защитой, а потом удаляется, и
+        # проверяется, что от неё не осталось ни задания, ни перехватов
+        # запуска в реестре. Иначе об этом узнал бы человек, а не сборка.
+        shell: pwsh
+        run: |
+          $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\360tray.exe"
+          $setup = (Get-ChildItem dist\installer\*.exe | Select-Object -First 1).FullName
+
+          Start-Process -FilePath $setup -Wait -ArgumentList `
+            '/VERYSILENT','/NORESTART','/SUPPRESSMSGBOXES','/TASKS=autostart,applynow'
+
+          $cli = "$env:ProgramFiles\Strazh\strazh-cli.exe"
+          if (-not (Test-Path $cli)) { throw "установщик не положил файлы" }
+          & $cli --version
+          if ($LASTEXITCODE -ne 0) { throw "установленная программа не запускается" }
+
+          schtasks /Query /TN Strazh | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "задание наблюдения не заведено" }
+          if (-not (Test-Path $ifeo)) { throw "защита не применилась: нет перехвата запуска" }
+          Write-Host "установка: файлы, задание и защита на месте"
+
+          $uninstaller = (Get-ChildItem "$env:ProgramFiles\Strazh\unins*.exe" | Select-Object -First 1).FullName
+          Start-Process -FilePath $uninstaller -Wait -ArgumentList `
+            '/VERYSILENT','/NORESTART','/SUPPRESSMSGBOXES'
+          Start-Sleep -Seconds 10
+
+          if (Test-Path "$env:ProgramFiles\Strazh\strazh-cli.exe") { throw "удаление оставило файлы" }
+          schtasks /Query /TN Strazh 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) { throw "удаление оставило задание наблюдения" }
+          if (Test-Path $ifeo) { throw "удаление оставило перехват запуска в реестре" }
+          Write-Host "удаление: не осталось ни файлов, ни задания, ни изменений в системе"
+
       - uses: actions/upload-artifact@v7
         with:
           name: strazh-windows
-          path: dist/
+          path: |
+            dist/*.exe
+            dist/installer/*.exe
           retention-days: 14

@@ -219,6 +219,72 @@ def cmd_watch(core: Strazh, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_autostart(core: Strazh, args: argparse.Namespace) -> int:
+    """Запуск наблюдения вместе с системой — заданием планировщика."""
+    from strazh.enforce.windows import autostart
+
+    if args.action == "status":
+        on = autostart.enabled()
+        _out(f"Автозапуск: {'включён' if on else 'выключен'} (задание «{autostart.TASK_NAME}»)")
+        if on:
+            _out(f"Команда:    {autostart.watcher_command()}")
+        return 0
+
+    if not core.enforcer.is_admin() and core.enforcer.platform == "windows":
+        _out("Нужны права администратора.")
+        return 2
+
+    if args.action == "on":
+        ok, detail = autostart.enable()
+        _out(f"Автозапуск включён: {detail}" if ok else f"Не получилось: {detail}")
+        if ok:
+            started, why = autostart.start_now()
+            _out("Наблюдение запущено." if started else f"Запустится при перезагрузке: {why}")
+        return 0 if ok else 1
+
+    ok, detail = autostart.disable()
+    _out("Автозапуск выключен." if ok else f"Не получилось: {detail}")
+    return 0 if ok else 1
+
+
+def cmd_update(core: Strazh, args: argparse.Namespace) -> int:
+    """Проверить и, если попросили, поставить новый выпуск."""
+    from strazh import paths, update
+
+    try:
+        found = update.check()
+    except update.UpdateError as exc:
+        _out(f"Проверка обновления не удалась: {exc}")
+        return 2
+
+    if found is None:
+        _out(f"Установлена последняя версия ({__version__}).")
+        return 0
+
+    _out(f"Доступна версия {found.version} (у вас {__version__}).")
+    _out(f"Файл:    {found.asset_name}, {found.size_text}")
+    _out(f"Выпуск:  {found.page}")
+    if found.notes:
+        _out("")
+        _out(found.notes[:600])
+    if not args.install:
+        _out("")
+        _out("Поставить: strazh-cli update --install")
+        return 0
+
+    _out("")
+    _out("Скачиваю и сверяю контрольную сумму…")
+    try:
+        saved = update.download(found, paths.machine_dir() / "update")
+        _out(f"Сумма сошлась: {saved}")
+        update.install(saved)
+    except update.UpdateError as exc:
+        _out(f"Обновление отменено: {exc}")
+        return 1
+    _out("Установщик запущен.")
+    return 0
+
+
 def cmd_gui(core: Strazh, args: argparse.Namespace) -> int:
     from strazh.gui.app import main as gui_main
 
@@ -283,6 +349,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_journal = sub.add_parser("journal", help="последние события")
     p_journal.add_argument("-n", "--number", type=int, default=40)
     p_journal.set_defaults(func=cmd_journal)
+
+    p_auto = sub.add_parser("autostart", help="запуск наблюдения вместе с системой")
+    p_auto.add_argument("action", choices=["on", "off", "status"], nargs="?", default="status")
+    p_auto.set_defaults(func=cmd_autostart)
+
+    p_update = sub.add_parser("update", help="проверить обновление")
+    p_update.add_argument("--install", action="store_true", help="скачать и поставить")
+    p_update.set_defaults(func=cmd_update)
 
     sub.add_parser("watch", help="запустить фонового стража").set_defaults(func=cmd_watch)
     sub.add_parser("gui", help="открыть окно").set_defaults(func=cmd_gui)

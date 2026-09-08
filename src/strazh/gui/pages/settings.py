@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import tkinter as tk
+from collections.abc import Callable
 from functools import partial
 from tkinter import filedialog, messagebox, ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from strazh import paths
 from strazh.core.quarantine import entries as quarantine_entries
@@ -15,6 +16,7 @@ from strazh.gui.widgets import Card, scrollable_tree
 
 if TYPE_CHECKING:
     from strazh.gui.app import StrazhWindow
+    from strazh.update import Update
 
 MECHANISM_ROWS: tuple[tuple[str, str, str], ...] = (
     (
@@ -164,6 +166,27 @@ class SettingsPage(ttk.Frame):
             wraplength=740,
         ).pack(anchor="w", padx=(22, 0))
 
+        ttk.Separator(page, orient="horizontal").pack(fill="x", pady=14)
+
+        self.autostart_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            page,
+            text="Наблюдать с запуска системы",
+            variable=self.autostart_var,
+            command=self._toggle_autostart,
+        ).pack(anchor="w")
+        self.autostart_hint = ttk.Label(
+            page,
+            text=(
+                "Задание планировщика запускает наблюдение вместе с Windows, от имени системы "
+                "и до входа кого бы то ни было. Без этого наблюдение идёт, только пока открыто "
+                "окно, — а нежелательные программы запускаются и без вас."
+            ),
+            style="CardMuted.TLabel",
+            wraplength=740,
+        )
+        self.autostart_hint.pack(anchor="w", padx=(22, 0))
+
         self.notify_var = tk.BooleanVar(value=self.app.core.settings.notify)
         ttk.Checkbutton(
             page,
@@ -202,10 +225,15 @@ class SettingsPage(ttk.Frame):
         return page
 
     def _about_tab(self, master: tk.Misc) -> ttk.Frame:
-        from strazh.version import APP_NAME, __version__
+        from strazh.version import APP_NAME, AUTHOR, YEAR, __version__
 
         page = Card(master, padding=20)
         ttk.Label(page, text=f"{APP_NAME} {__version__}", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            page,
+            text=f"Разработчик: {AUTHOR}, {YEAR}",
+            style="CardMuted.TLabel",
+        ).pack(anchor="w", pady=(2, 0))
         ttk.Label(
             page,
             text=(
@@ -219,7 +247,20 @@ class SettingsPage(ttk.Frame):
             style="CardMuted.TLabel",
             wraplength=740,
             justify="left",
-        ).pack(anchor="w", pady=(8, 14))
+        ).pack(anchor="w", pady=(10, 14))
+
+        update_row = ttk.Frame(page, style="Card.TFrame")
+        update_row.pack(fill="x", pady=(0, 6))
+        self.update_button = ttk.Button(
+            update_row, text="Проверить обновление", command=self._check_update
+        )
+        self.update_button.pack(side="left")
+        self.install_button = ttk.Button(
+            update_row, text="Установить", style="Accent.TButton", command=self._install_update
+        )
+        self.update_status = ttk.Label(page, text="", style="CardMuted.TLabel", wraplength=740)
+        self.update_status.pack(anchor="w", pady=(4, 14))
+        self._update: Update | None = None
 
         for title, value in (
             ("Данные и каталог", str(paths.machine_dir())),
@@ -236,6 +277,89 @@ class SettingsPage(ttk.Frame):
             ).pack(side="left")
         return page
 
+    # ── обновление ────────────────────────────────────────────────────────────
+
+    def _check_update(self) -> None:
+        from strazh import update as update_mod
+        from strazh.version import __version__
+
+        self.update_button.configure(state="disabled")
+        self.install_button.pack_forget()
+        self.update_status.configure(text="Спрашиваю GitHub…")
+
+        def work() -> tuple[Update | None, str]:
+            try:
+                return update_mod.check(), ""
+            except update_mod.UpdateError as exc:
+                return None, str(exc)
+
+        def done(result: tuple[Update | None, str]) -> None:
+            found, error = result
+            self.update_button.configure(state="normal")
+            if error:
+                self.update_status.configure(text=f"Не получилось: {error}")
+                return
+            if found is None:
+                self.update_status.configure(text=f"Установлена последняя версия ({__version__}).")
+                return
+            self._update = found
+            self.update_status.configure(
+                text=(
+                    f"Доступна версия {found.version} — {found.asset_name}, {found.size_text}. "
+                    "Скачанное будет сверено с контрольной суммой из того же выпуска, "
+                    "и без совпадения не запустится."
+                )
+            )
+            self.install_button.pack(side="left", padx=(8, 0), in_=self.update_button.master)
+
+        self._in_thread(work, done)
+
+    def _install_update(self) -> None:
+        from strazh import paths as paths_mod
+        from strazh import update as update_mod
+
+        found = self._update
+        if found is None:
+            return
+        if not messagebox.askyesno(
+            "Обновление",
+            f"Скачать версию {found.version} и запустить установщик?\n\n"
+            "Программа закроется, настройки и свой каталог останутся на месте.",
+            parent=self,
+        ):
+            return
+        self.install_button.configure(state="disabled")
+        self.update_status.configure(text="Скачиваю и сверяю контрольную сумму…")
+
+        def work() -> tuple[bool, str]:
+            try:
+                saved = update_mod.download(found, paths_mod.machine_dir() / "update")
+                update_mod.install(saved)
+                return True, str(saved)
+            except update_mod.UpdateError as exc:
+                return False, str(exc)
+
+        def done(result: tuple[bool, str]) -> None:
+            ok, detail = result
+            self.install_button.configure(state="normal")
+            if ok:
+                self.update_status.configure(text="Сумма сошлась, установщик запущен.")
+                self.app.after(1500, self.app.destroy)
+            else:
+                self.update_status.configure(text=f"Обновление отменено: {detail}")
+
+        self._in_thread(work, done)
+
+    def _in_thread(self, work: Callable[[], Any], done: Callable[[Any], None]) -> None:
+        """Сеть в отдельном потоке: окно не должно замирать на время ответа."""
+        import threading
+
+        def runner() -> None:
+            result = work()
+            self.after(0, lambda: done(result))
+
+        threading.Thread(target=runner, name="strazh-update", daemon=True).start()
+
     # ── действия ──────────────────────────────────────────────────────────────
 
     def _toggle(self, key: str) -> None:
@@ -243,6 +367,26 @@ class SettingsPage(ttk.Frame):
         self.app.core.save()
         self.app.restart_watchers()
         self.app.refresh_all()
+
+    def _toggle_autostart(self) -> None:
+        from strazh.enforce.windows import autostart
+
+        wanted = self.autostart_var.get()
+        if wanted and not self.app.can_change_system:
+            self.autostart_var.set(False)
+            messagebox.showwarning(
+                "Права",
+                "Задание, работающее от имени системы, заводится только с правами администратора.",
+                parent=self,
+            )
+            return
+        ok, detail = autostart.enable() if wanted else autostart.disable()
+        if not ok:
+            self.autostart_var.set(not wanted)
+            messagebox.showerror("Автозапуск", detail or "не получилось", parent=self)
+            return
+        self.app.core.settings.autostart = wanted
+        self.app.core.save()
 
     def _save_flags(self) -> None:
         self.app.core.settings.quarantine = self.quarantine_var.get()
@@ -298,5 +442,10 @@ class SettingsPage(ttk.Frame):
         self._load_quarantine()
 
     def refresh(self) -> None:
+        from strazh.enforce.windows import autostart
+
         for key, var in self.vars.items():
             var.set(bool(getattr(self.app.core.settings.mechanisms, key)))
+        # Состояние берётся у планировщика, а не из настроек: задание могли
+        # убрать снаружи, и показывать при этом галочку было бы враньём.
+        self.autostart_var.set(autostart.enabled())

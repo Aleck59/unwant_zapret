@@ -62,13 +62,17 @@ def default_dirs() -> list[Path]:
         found.append(Path(temp))
     # Загрузки остальных учётных записей: установщик мог скачать не тот, кто
     # сейчас за машиной.
+    # Фоновое наблюдение работает от имени системы, и её собственные
+    # «загрузки» и «временные» — не те, куда попадают установщики. Поэтому
+    # папки берутся у всех учётных записей, а не только у текущей.
     users = Path(os.environ.get("SystemDrive", "C:") + "\\Users")
     if users.is_dir():
         try:
             for profile in users.iterdir():
-                downloads = profile / "Downloads"
-                if downloads.is_dir() and downloads not in found:
-                    found.append(downloads)
+                for tail in ("Downloads", "Загрузки", "Desktop", "AppData/Local/Temp"):
+                    candidate = profile.joinpath(*tail.split("/"))
+                    if candidate.is_dir() and candidate not in found:
+                        found.append(candidate)
         except OSError:
             pass
     return found

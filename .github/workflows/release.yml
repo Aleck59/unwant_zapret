@@ -64,13 +64,28 @@ jobs:
       - name: Собрать
         run: pyinstaller --noconfirm --clean packaging/strazh.spec
 
+      - name: Собрать установщик
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Host "Inno Setup нет в образе — ставлю"
+            choco install innosetup -y --no-progress | Out-Null
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe не найден после установки" }
+          $plain = "${{ steps.version.outputs.value }}".TrimStart("v")
+          & $iscc "/DAppVersion=$plain" packaging\strazh.iss
+          if ($LASTEXITCODE -ne 0) { throw "установщик не собрался" }
+          Get-ChildItem dist\installer
+
       - name: Упаковать
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.value }}"
           New-Item -ItemType Directory -Force -Path release | Out-Null
           Compress-Archive -Path dist/*.exe -DestinationPath "release/strazh-$version-windows-x64.zip"
-          Get-ChildItem release -Filter *.zip | ForEach-Object {
+          Copy-Item dist/installer/*.exe release/
+          Get-ChildItem release\* -Include *.zip,*.exe | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($_.Name)" | Out-File -Append -Encoding utf8 release/SHA256SUMS.txt
           }
@@ -97,14 +112,19 @@ jobs:
           tag_name: ${{ needs.build.outputs.version }}
           name: Страж ${{ needs.build.outputs.version }}
           files: |
+            release/*.exe
             release/*.zip
             release/SHA256SUMS.txt
           body: |
             Запрет запуска и установки нежелательного и шпионского ПО для Windows 10/11.
 
-            **Установка.** Скачайте архив, распакуйте, запустите `Strazh.exe`.
-            Программа попросит права администратора: без них не завести правила
-            запуска в общей ветке реестра.
+            **Установка.** Скачайте `strazh-setup-*.exe` и запустите. Установщик
+            заведёт наблюдение с запуска системы и включит защиту; удаление
+            снимет всё, что программа внесла в систему, а не просто сотрёт файлы.
+
+            Кому нужна переносимая сборка — архив `*.zip` рядом: распакуйте и
+            запустите `Strazh.exe`. Программа попросит права администратора: без
+            них не завести правила запуска в общей ветке реестра.
 
             **Проверка загрузки.** Суммы файлов — в `SHA256SUMS.txt`.
             Собрано из исходного кода этим самым выпуском, журнал сборки

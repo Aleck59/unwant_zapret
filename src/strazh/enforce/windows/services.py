@@ -19,6 +19,7 @@ from strazh.core.state import Change, State
 from strazh.enforce import plan as planner
 from strazh.enforce.base import Mechanism, StepResult
 from strazh.enforce.windows import registry as reg
+from strazh.enforce.windows.autostart import TASK_NAME
 
 SERVICES_PATH = r"SYSTEM\CurrentControlSet\Services"
 MECHANISM_SERVICE = "service"
@@ -157,6 +158,10 @@ class TasksMechanism(Mechanism):
             regex = compile_pattern(op.key if op.key.startswith("\\") else f"*{op.key}*")
             for name in known:
                 if not regex.match(name):
+                    continue
+                # Своё задание не отключаем ни при каких масках: правило в
+                # каталоге не должно уметь выключить наблюдение.
+                if name.strip("\\").casefold() == TASK_NAME.casefold():
                     continue
                 code, output = _run(["schtasks", "/Change", "/TN", name, "/Disable"])
                 if code != 0:
