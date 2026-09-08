@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from strazh.core.catalog import Catalog
-from strazh.core.journal import Journal
 from strazh.core.models import FileFacts, Target
 from strazh.core.settings import Settings
 from strazh.core.state import State
@@ -147,9 +146,7 @@ class Enforcer(ABC):
 
     # ── общий сценарий, одинаковый на всех системах ──────────────────────────
 
-    def apply(
-        self, catalog: Catalog, settings: Settings, state: State, journal: Journal | None = None
-    ) -> Report:
+    def apply(self, catalog: Catalog, settings: Settings, state: State) -> Report:
         targets = catalog.enabled()
         report = Report()
         for mechanism in self.mechanisms(settings):
@@ -162,7 +159,7 @@ class Enforcer(ABC):
             report.steps.append(mechanism.apply(targets, state))
         return report
 
-    def revert(self, settings: Settings, state: State, journal: Journal | None = None) -> Report:
+    def revert(self, settings: Settings, state: State) -> Report:
         """Откат идёт по всем известным механизмам, а не только по включённым:
         человек мог выключить механизм в настройках уже после применения, и
         его следы всё равно надо убрать."""

@@ -173,7 +173,7 @@ class Strazh:
         return self.state.protection_on
 
     def apply_protection(self) -> Report:
-        report = self.enforcer.apply(self.catalog, self.settings, self.state, self.journal)
+        report = self.enforcer.apply(self.catalog, self.settings, self.state)
         self.state.protection_on = True
         self.state.applied_at = datetime.now(UTC).isoformat(timespec="seconds")
         save_state(paths.state_file(), self.state)
@@ -187,7 +187,7 @@ class Strazh:
         return report
 
     def revert_protection(self) -> Report:
-        report = self.enforcer.revert(self.settings, self.state, self.journal)
+        report = self.enforcer.revert(self.settings, self.state)
         self.state.protection_on = False
         save_state(paths.state_file(), self.state)
         self.journal.write(
