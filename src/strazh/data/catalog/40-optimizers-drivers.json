@@ -9,26 +9,67 @@
       "category": "system-optimizer",
       "severity": "high",
       "why": "Ставит соседние продукты издателя без отдельного согласия, показывает завышенное число найденных проблем, добавляет несколько служб и заданий автозапуска. Издателя уличали в использовании чужих антивирусных баз.",
-      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "references": [
+        "https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"
+      ],
       "match": {
         "executables": [
-          "advancedsystemcare.exe", "asc.exe", "asctray.exe", "autosweep.exe",
-          "driverbooster.exe", "driverboosterservice.exe", "smartdefrag.exe",
-          "iobituninstaller.exe", "iobitunsmenu.exe", "malwarefight.exe", "imf.exe",
-          "liveupdate.exe", "ascservice.exe", "iobitsmartdefrag.exe", "iobitmalwarefighter.exe"
+          "advancedsystemcare.exe",
+          "asc.exe",
+          "asctray.exe",
+          "autosweep.exe",
+          "driverbooster.exe",
+          "driverboosterservice.exe",
+          "smartdefrag.exe",
+          "iobituninstaller.exe",
+          "iobitunsmenu.exe",
+          "malwarefight.exe",
+          "imf.exe",
+          "liveupdate.exe",
+          "ascservice.exe",
+          "iobitsmartdefrag.exe",
+          "iobitmalwarefighter.exe"
         ],
         "installers": [
-          "advancedsystemcare*setup*.exe", "driver_booster*setup*.exe", "iobit*setup*.exe",
-          "asc-setup*.exe", "*iobit*install*.exe"
+          "advancedsystemcare*setup*.exe",
+          "driver_booster*setup*.exe",
+          "iobit*setup*.exe",
+          "asc-setup*.exe",
+          "*iobit*install*.exe"
         ],
-        "publishers": ["IObit"],
-        "product_names": ["Advanced SystemCare", "Driver Booster", "IObit Malware Fighter"],
-        "paths": ["*\\IObit\\*"],
-        "services": ["AdvancedSystemCareService", "DriverBooster", "IObit Malware Fighter Service", "SmartDefragService"],
-        "scheduled_tasks": ["*IObit*", "*Driver Booster*", "*Advanced SystemCare*"],
-        "domains": ["iobit.com"]
+        "publishers": [
+          "IObit"
+        ],
+        "product_names": [
+          "Advanced SystemCare",
+          "Driver Booster",
+          "IObit Malware Fighter"
+        ],
+        "paths": [
+          "*\\IObit\\*"
+        ],
+        "services": [
+          "AdvancedSystemCareService",
+          "DriverBooster",
+          "IObit Malware Fighter Service",
+          "SmartDefragService"
+        ],
+        "scheduled_tasks": [
+          "*IObit*",
+          "*Driver Booster*",
+          "*Advanced SystemCare*"
+        ],
+        "domains": [
+          "iobit.com"
+        ]
       },
-      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+      "actions": [
+        "block_exec",
+        "block_install",
+        "block_network",
+        "neutralize_services",
+        "block_domains"
+      ]
     },
     {
       "id": "driverpack-solution",
@@ -37,16 +78,41 @@
       "category": "driver-updater",
       "severity": "high",
       "why": "Под видом установки драйверов ставит браузеры, панели поиска и сторонние программы, часть из которых меняет настройки браузера. Драйверы берёт из собственных сборок, а не от изготовителя.",
-      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "references": [
+        "https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"
+      ],
       "match": {
-        "executables": ["driverpack*.exe", "drvpack*.exe", "driverpacksolution*.exe", "dpinst_*.exe"],
-        "installers": ["driverpack*.exe", "drp*setup*.exe", "drpsu*.exe"],
-        "publishers": ["DriverPack", "Kuzyakov"],
-        "product_names": ["DriverPack Solution"],
-        "paths": ["*\\DriverPack*\\*"],
-        "domains": ["driverpack.io", "drp.su"]
+        "executables": [
+          "driverpack*.exe",
+          "drvpack*.exe",
+          "driverpacksolution*.exe",
+          "dpinst_*.exe"
+        ],
+        "installers": [
+          "driverpack*.exe",
+          "drp*setup*.exe",
+          "drpsu*.exe"
+        ],
+        "publishers": [
+          "DriverPack",
+          "Kuzyakov"
+        ],
+        "product_names": [
+          "DriverPack Solution"
+        ],
+        "paths": [
+          "*\\DriverPack*\\*"
+        ],
+        "domains": [
+          "driverpack.io",
+          "drp.su"
+        ]
       },
-      "actions": ["block_exec", "block_install", "block_domains"]
+      "actions": [
+        "block_exec",
+        "block_install",
+        "block_domains"
+      ]
     },
     {
       "id": "driver-updaters",
@@ -55,24 +121,69 @@
       "category": "driver-updater",
       "severity": "high",
       "why": "Все работают одинаково: бесплатная проверка находит десятки «устаревших» драйверов, установка требует оплаты, а поставленные драйверы нередко старее уже установленных.",
-      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "references": [
+        "https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"
+      ],
       "match": {
         "executables": [
-          "drivereasy.exe", "driverease*.exe", "drivertalent.exe", "drivethelife.exe",
-          "slimdrivers.exe", "driversupport.exe", "driverupdate.exe", "drivertoolkit.exe",
-          "winzipdriverupdater.exe", "driverdoc.exe", "driverfinder.exe", "drivermax.exe"
+          "drivereasy.exe",
+          "driverease*.exe",
+          "drivertalent.exe",
+          "drivethelife.exe",
+          "slimdrivers.exe",
+          "driversupport.exe",
+          "driverupdate.exe",
+          "drivertoolkit.exe",
+          "winzipdriverupdater.exe",
+          "driverdoc.exe",
+          "driverfinder.exe",
+          "drivermax.exe"
         ],
         "installers": [
-          "drivereasy*setup*.exe", "drivertalent*.exe", "slimdrivers*.exe",
-          "driverupdate*.exe", "drivertoolkit*.exe", "winzip*driver*.exe", "drivermax*.exe"
+          "drivereasy*setup*.exe",
+          "drivertalent*.exe",
+          "slimdrivers*.exe",
+          "driverupdate*.exe",
+          "drivertoolkit*.exe",
+          "winzip*driver*.exe",
+          "drivermax*.exe"
         ],
-        "publishers": ["Easeware", "OSToto", "SlimWare", "Driver Support", "Corel", "Innovative Solutions"],
-        "product_names": ["Driver Easy", "Driver Talent", "SlimDrivers", "DriverMax"],
-        "paths": ["*\\DriverEasy\\*", "*\\Driver Talent\\*", "*\\SlimDrivers\\*", "*\\DriverMax\\*"],
-        "services": ["DriverEasyService", "DriverTalentService", "SlimDriversService"],
-        "scheduled_tasks": ["*Driver Easy*", "*DriverMax*", "*SlimDrivers*"]
+        "publishers": [
+          "Easeware",
+          "OSToto",
+          "SlimWare",
+          "Driver Support",
+          "Corel",
+          "Innovative Solutions"
+        ],
+        "product_names": [
+          "Driver Easy",
+          "Driver Talent",
+          "SlimDrivers",
+          "DriverMax"
+        ],
+        "paths": [
+          "*\\DriverEasy\\*",
+          "*\\Driver Talent\\*",
+          "*\\SlimDrivers\\*",
+          "*\\DriverMax\\*"
+        ],
+        "services": [
+          "DriverEasyService",
+          "DriverTalentService",
+          "SlimDriversService"
+        ],
+        "scheduled_tasks": [
+          "*Driver Easy*",
+          "*DriverMax*",
+          "*SlimDrivers*"
+        ]
       },
-      "actions": ["block_exec", "block_install", "neutralize_services"]
+      "actions": [
+        "block_exec",
+        "block_install",
+        "neutralize_services"
+      ]
     },
     {
       "id": "winzip-utilities",
@@ -83,15 +194,34 @@
       "why": "Набор чистильщиков, который приезжает вместе с архиватором и показывает постоянные напоминания о найденных «проблемах реестра».",
       "match": {
         "executables": [
-          "winzipsystemutilities*.exe", "winzipdriverupdater.exe", "winzipregistryoptimizer.exe",
-          "wzsu*.exe", "winzipmalwareprotector.exe"
+          "winzipsystemutilities*.exe",
+          "winzipdriverupdater.exe",
+          "winzipregistryoptimizer.exe",
+          "wzsu*.exe",
+          "winzipmalwareprotector.exe"
         ],
-        "installers": ["winzip*utilities*.exe", "winzip*driver*.exe", "winzip*optimizer*.exe"],
-        "publishers": ["WinZip Computing", "Corel"],
-        "product_names": ["WinZip System Utilities", "WinZip Driver Updater"],
-        "paths": ["*\\WinZip System Utilities*\\*", "*\\WinZip Driver Updater\\*"]
+        "installers": [
+          "winzip*utilities*.exe",
+          "winzip*driver*.exe",
+          "winzip*optimizer*.exe"
+        ],
+        "publishers": [
+          "WinZip Computing",
+          "Corel"
+        ],
+        "product_names": [
+          "WinZip System Utilities",
+          "WinZip Driver Updater"
+        ],
+        "paths": [
+          "*\\WinZip System Utilities*\\*",
+          "*\\WinZip Driver Updater\\*"
+        ]
       },
-      "actions": ["block_exec", "block_install"]
+      "actions": [
+        "block_exec",
+        "block_install"
+      ]
     },
     {
       "id": "wondershare-suite",
@@ -100,19 +230,44 @@
       "category": "system-optimizer",
       "severity": "medium",
       "why": "Ставит общую службу обновления и «помощник», которые остаются на машине после удаления самой программы и продолжают ходить в сеть.",
-      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "references": [
+        "https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"
+      ],
       "match": {
         "executables": [
-          "wsupdater*.exe", "wondershare*.exe", "drfone*.exe", "nativepushservice.exe",
-          "wsclientupdater.exe", "wshelper.exe", "wsdaemon.exe"
+          "wsupdater*.exe",
+          "wondershare*.exe",
+          "drfone*.exe",
+          "nativepushservice.exe",
+          "wsclientupdater.exe",
+          "wshelper.exe",
+          "wsdaemon.exe"
         ],
-        "installers": ["wondershare*setup*.exe", "drfone*.exe", "filmora*setup*.exe"],
-        "publishers": ["Wondershare"],
-        "paths": ["*\\Wondershare\\*"],
-        "services": ["WsAppService", "Wondershare*", "NativePushService"],
-        "scheduled_tasks": ["*Wondershare*"]
+        "installers": [
+          "wondershare*setup*.exe",
+          "drfone*.exe",
+          "filmora*setup*.exe"
+        ],
+        "publishers": [
+          "Wondershare"
+        ],
+        "paths": [
+          "*\\Wondershare\\*"
+        ],
+        "services": [
+          "WsAppService",
+          "Wondershare*",
+          "NativePushService"
+        ],
+        "scheduled_tasks": [
+          "*Wondershare*"
+        ]
       },
-      "actions": ["block_exec", "block_install", "neutralize_services"]
+      "actions": [
+        "block_exec",
+        "block_install",
+        "neutralize_services"
+      ]
     },
     {
       "id": "hola-vpn",
@@ -121,16 +276,43 @@
       "category": "system-optimizer",
       "severity": "high",
       "why": "Бесплатная версия пропускает через машину пользователя чужой трафик и продавала этот канал как ботсеть под названием Luminati. Пользователь становится выходным узлом, не зная об этом.",
-      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "references": [
+        "https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"
+      ],
       "match": {
-        "executables": ["hola*.exe", "hola_svc.exe", "hola_updater.exe", "holabrowser.exe"],
-        "installers": ["hola*setup*.exe", "hola_*.exe"],
-        "publishers": ["Hola Networks", "Hola Limited"],
-        "paths": ["*\\hola\\*"],
-        "services": ["hola_svc", "hola_updater"],
-        "domains": ["hola.org", "luminati.io"]
+        "executables": [
+          "hola*.exe",
+          "hola_svc.exe",
+          "hola_updater.exe",
+          "holabrowser.exe"
+        ],
+        "installers": [
+          "hola*setup*.exe",
+          "hola_*.exe"
+        ],
+        "publishers": [
+          "Hola Networks",
+          "Hola Limited"
+        ],
+        "paths": [
+          "*\\hola\\*"
+        ],
+        "services": [
+          "hola_svc",
+          "hola_updater"
+        ],
+        "domains": [
+          "hola.org",
+          "luminati.io"
+        ]
       },
-      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+      "actions": [
+        "block_exec",
+        "block_install",
+        "block_network",
+        "neutralize_services",
+        "block_domains"
+      ]
     }
   ]
 }
