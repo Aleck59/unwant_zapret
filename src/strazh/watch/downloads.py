@@ -85,11 +85,6 @@ class DownloadWatcher:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._checked: dict[str, float] = {}
-        # Время последнего изменения самой папки. Пока оно не менялось, в
-        # папке ничего не появлялось и не исчезало — читать её содержимое
-        # незачем. Одна проверка вместо перечисления всех файлов: в папке
-        # загрузок их бывают тысячи, а проверка идёт круглые сутки.
-        self._folder_stamp: dict[str, float] = {}
         self.caught_count = 0
 
     def dirs(self) -> list[Path]:
@@ -140,9 +135,13 @@ class DownloadWatcher:
         вместе со списком, и отдельный запрос к диску на каждый файл не
         нужен. Разница решает: во временной папке бывают тысячи файлов, а
         обход идёт круглые сутки.
+
+        Сокращения «папка не менялась — не читаем» здесь нет намеренно. Оно
+        напрашивается и стоило бы одного обращения вместо всего обхода, но на
+        Windows отметка времени папки после появления в ней файла меняется не
+        сразу. Наблюдатель, который экономит проход ценой пропущенного
+        установщика, не нужен вовсе.
         """
-        if not self._folder_changed(folder):
-            return []
         out: list[Path] = []
         now = time.time()
         seen = 0
@@ -172,22 +171,6 @@ class DownloadWatcher:
         except OSError:
             return out
         return out
-
-    def _folder_changed(self, folder: Path) -> bool:
-        """Менялось ли содержимое папки с прошлого раза.
-
-        Возвращает истину и когда папку не удалось опросить: пропустить
-        проверку из-за сбоя одной операции нельзя, лучше лишний обход.
-        """
-        key = str(folder).casefold()
-        try:
-            stamp = folder.stat().st_mtime
-        except OSError:
-            return True
-        if self._folder_stamp.get(key) == stamp:
-            return False
-        self._folder_stamp[key] = stamp
-        return True
 
     def check(self, path: Path) -> Caught | None:
         """Проверить один файл и, если он из каталога, убрать его в карантин."""

@@ -219,13 +219,23 @@ class TestProcessWatcher:
 class TestEventSources:
     """Откуда наблюдатель берёт сообщения о запуске."""
 
-    def test_wmi_source_declines_outside_windows(self) -> None:
-        """Отказ — не ошибка: наблюдатель обязан молча перейти на опрос."""
+    def test_wmi_source_matches_the_platform(self) -> None:
+        """На Windows подписка обязана подниматься, в остальных случаях —
+        честно отказываться. Отказ не ошибка: наблюдатель перейдёт на опрос."""
         import queue as queue_mod
+        import sys as sys_mod
 
         from strazh.watch.procevents import WmiEventSource
 
-        assert WmiEventSource(queue_mod.Queue()).start() is False
+        source = WmiEventSource(queue_mod.Queue())
+        started = source.start()
+        try:
+            assert started is (sys_mod.platform == "win32")
+            if started:
+                assert source.alive
+        finally:
+            source.stop()
+        assert not source.alive
 
     def test_polling_source_reports_only_new_processes(self) -> None:
         import queue as queue_mod
@@ -247,9 +257,13 @@ class TestEventSources:
             source.stop()
         assert not source.alive
 
-    def test_watcher_falls_back_and_still_catches(self, home: Path) -> None:
-        """На машине без подписки наблюдатель обязан работать — медленнее,
-        но работать."""
+    def test_watcher_falls_back_and_still_catches(self, home: Path, monkeypatch) -> None:
+        """На машине без подписки наблюдатель обязан работать — медленнее, но
+        работать. Отказ подписки задаём принудительно: иначе на Windows
+        проверялся бы не тот путь, ради которого она написана."""
+        from strazh.watch import procevents
+
+        monkeypatch.setattr(procevents.WmiEventSource, "start", lambda self: False)
         core = Strazh(dry_run=True)
         listing = [FileFacts(image_name="explorer.exe", pid=1)]
         core.enforcer = FakeEnforcer(listing)
@@ -278,17 +292,38 @@ class TestIdleCost:
     ли наблюдатель список процессов, когда его никто не просил.
     """
 
-    def test_unchanged_folder_is_not_listed_again(self, core: Strazh, tmp_path: Path) -> None:
+    def test_new_file_is_noticed_on_the_next_pass(self, core: Strazh, tmp_path: Path) -> None:
+        """Сокращения «папка не менялась — не читаем» здесь быть не должно: на
+        Windows отметка времени папки после появления файла меняется не сразу,
+        и такой наблюдатель пропускал бы установщики."""
+        import os as os_mod
+
         downloads = tmp_path / "downloads"
         downloads.mkdir()
         core.settings.watch_dirs = [str(downloads)]
         watcher = DownloadWatcher(core)
+        assert watcher._candidates(downloads) == []
 
-        assert watcher._folder_changed(downloads) is True
-        assert watcher._folder_changed(downloads) is False, "папка перечитана без причины"
+        installer = downloads / "360TS_Setup_Mini.exe"
+        installer.write_bytes(b"MZ")
+        old = time.time() - 60
+        os_mod.utime(installer, (old, old))
+        assert watcher._candidates(downloads) == [installer]
 
-        (downloads / "новый.exe").write_bytes(b"MZ")
-        assert watcher._folder_changed(downloads) is True
+    def test_same_file_is_not_examined_twice(self, core: Strazh, tmp_path: Path) -> None:
+        import os as os_mod
+
+        downloads = tmp_path / "downloads"
+        downloads.mkdir()
+        ordinary = downloads / "мой-отчёт.exe"
+        ordinary.write_bytes(b"MZ")
+        old = time.time() - 60
+        os_mod.utime(ordinary, (old, old))
+
+        core.settings.watch_dirs = [str(downloads)]
+        watcher = DownloadWatcher(core)
+        assert watcher._candidates(downloads) == [ordinary]
+        assert watcher._candidates(downloads) == [], "файл разобран повторно"
 
     def test_huge_folder_is_examined_in_parts(self, core: Strazh, tmp_path: Path) -> None:
         """Во временной папке бывают десятки тысяч файлов. Один проход не
