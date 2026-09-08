@@ -103,6 +103,10 @@ jobs:
     name: Сборка для Windows
     runs-on: windows-latest
     needs: [lint, test]
+    # Проверка установки ставит и удаляет программу по-настоящему. Если она
+    # где-то встанет — а встать она может на окне, которого некому нажать, —
+    # задача обязана упасть, а не занимать машину сборки полдня.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

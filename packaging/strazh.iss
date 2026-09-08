@@ -105,8 +105,10 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchApp}"; Flags: nowait postin
 
 [UninstallRun]
 ; Выполняется до удаления файлов — иначе снимать изменения было бы нечем.
-Filename: "{app}\{#CliExe}"; Parameters: "autostart off"; StatusMsg: "{cm:StoppingWatch}"; Flags: runhidden waituntilterminated; RunOnceId: "StrazhAutostartOff"
+; Порядок этих двух строк не важен: наблюдение к этому моменту уже снято
+; кодом ниже, а откат и удаление задания друг от друга не зависят.
 Filename: "{app}\{#CliExe}"; Parameters: "revert"; StatusMsg: "{cm:RevertingChanges}"; Flags: runhidden waituntilterminated; RunOnceId: "StrazhRevert"
+Filename: "{app}\{#CliExe}"; Parameters: "autostart off"; StatusMsg: "{cm:StoppingWatch}"; Flags: runhidden waituntilterminated; RunOnceId: "StrazhAutostartOff"
 
 [Code]
 procedure StopRunning();
@@ -131,8 +133,17 @@ end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
+  { Задание могло уже запустить наблюдение, и оно держит свои файлы.
+    Снимаем его до удаления — иначе удаление упрётся в занятый файл. }
+  if CurUninstallStep = usUninstall then
+    StopRunning();
+
   if CurUninstallStep = usPostUninstall then
     { Данные не удаляем: в карантине лежат чужие файлы, которые человек мог
-      захотеть вернуть, а в каталоге — его собственные правила. }
-    MsgBox(ExpandConstant('{cm:DataKept}'), mbInformation, MB_OK);
+      захотеть вернуть, а в каталоге — его собственные правила.
+
+      SuppressibleMsgBox, а не MsgBox: при тихом удалении (/VERYSILENT)
+      обычное окно ждало бы нажатия, которого некому сделать, и удаление
+      висело бы вечно. }
+    SuppressibleMsgBox(ExpandConstant('{cm:DataKept}'), mbInformation, MB_OK, IDOK);
 end;
