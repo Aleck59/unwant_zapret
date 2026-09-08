@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 MECHANISM_TITLES = {
     "ifeo": ("Перехват запуска по имени файла", "Не даёт запуститься известным файлам"),
     "srp": ("Правила по пути и маске", "Ловит установщики по маске имени и месту"),
+    "group_policy": (
+        "Локальная групповая политика",
+        "Windows сама возвращает запрет, если его стёрли из реестра",
+    ),
     "process_watch": ("Наблюдение за процессами", "Ловит переименованные файлы по подписи"),
     "download_watch": ("Наблюдение за загрузками", "Убирает установщики в карантин"),
     "firewall": ("Правила брандмауэра", "Отрезает сеть уже установленному"),
@@ -133,7 +137,11 @@ class OverviewPage(ttk.Frame):
         self.counters["caught"].configure(text=str(stats["caught"]))
 
         mechanisms = core.settings.mechanisms
+        source = self.app.supervisor.source_title if self.app.supervisor else ""
         for key, (badge, label) in self.mech_rows.items():
+            if key == "process_watch" and source:
+                title, _ = MECHANISM_TITLES[key]
+                label.configure(text=f"{title} — {source}")
             enabled = bool(getattr(mechanisms, key, False))
             if not enabled:
                 badge.set("выкл", "muted")

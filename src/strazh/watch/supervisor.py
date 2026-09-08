@@ -43,6 +43,11 @@ class Supervisor:
         return self.processes.running or self.downloads.running
 
     @property
+    def source_title(self) -> str:
+        """Чем ловится запуск: подпиской на события или опросом."""
+        return self.processes.source_title
+
+    @property
     def stats(self) -> dict[str, int]:
         return {
             "blocked": self.processes.blocked_count,

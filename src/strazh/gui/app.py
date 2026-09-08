@@ -29,7 +29,10 @@ from strazh.watch.downloads import Caught
 from strazh.watch.processes import Blocked
 from strazh.watch.supervisor import Supervisor
 
-REFRESH_MS = 2000
+REFRESH_MS = 5000
+"""Как часто окно освежает показания. Раньше было две секунды, но окно
+открыто часами, а меняться в нём между событиями нечему: обновление идёт
+только когда числа действительно изменились."""
 
 
 class Page(Protocol):
@@ -52,6 +55,7 @@ class StrazhWindow(tk.Tk):
         self.fonts = apply(self)
 
         self._busy = False
+        self._last_snapshot: tuple[object, ...] = ()
         self._build()
         self._start_watchers()
         self.refresh_all()
@@ -151,7 +155,8 @@ class StrazhWindow(tk.Tk):
         if self.supervisor is not None and self.supervisor.running:
             stats = self.supervisor.stats
             parts.append(
-                f"Страж работает. Остановлено: {stats['blocked']}, задержано: {stats['caught']}."
+                f"Страж работает ({self.supervisor.source_title}).\n"
+                f"Остановлено: {stats['blocked']}, задержано: {stats['caught']}."
             )
         else:
             parts.append("Наблюдатели выключены.")
@@ -159,10 +164,25 @@ class StrazhWindow(tk.Tk):
 
     def _tick(self) -> None:
         if not self._busy:
-            self._update_status_bar()
-            if self.current == "overview":
-                self.pages["overview"].refresh()
+            snapshot = self._snapshot()
+            if snapshot != self._last_snapshot:
+                self._last_snapshot = snapshot
+                self._update_status_bar()
+                if self.current == "overview":
+                    self.pages["overview"].refresh()
         self.after(REFRESH_MS, self._tick)
+
+    def _snapshot(self) -> tuple[object, ...]:
+        """Всё, что показывает обзор, одной строкой. Совпало с прошлым разом —
+        перерисовывать нечего."""
+        stats = self.supervisor.stats if self.supervisor is not None else {}
+        return (
+            self.core.protection_on,
+            len(self.core.state.changes),
+            stats.get("blocked", 0),
+            stats.get("caught", 0),
+            self.supervisor.running if self.supervisor is not None else False,
+        )
 
     # ── длинные действия ──────────────────────────────────────────────────────
 

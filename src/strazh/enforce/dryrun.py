@@ -21,6 +21,7 @@ from strazh.enforce.base import Enforcer, InstalledProgram, Mechanism, StepResul
 _TITLES = {
     "ifeo": "Перехват запуска по имени файла",
     "srp": "Правила по пути и маске",
+    "gpo": "Локальная групповая политика",
     "hash": "Запрет по контрольной сумме",
     "firewall": "Правила брандмауэра",
     "hosts": "Закрытие адресов",
@@ -74,6 +75,7 @@ class DryRunEnforcer(Enforcer):
         wanted: list[tuple[str, bool, Callable[[list[Target]], list[planner.Operation]]]] = [
             ("ifeo", m.ifeo, planner.plan_ifeo),
             ("srp", m.srp, planner.plan_srp),
+            ("gpo", m.group_policy, planner.plan_srp),
             ("hash", m.srp, planner.plan_hashes),
             ("firewall", m.firewall, planner.plan_firewall),
             ("hosts", m.hosts, planner.plan_hosts),
@@ -84,6 +86,12 @@ class DryRunEnforcer(Enforcer):
 
     def process_list(self) -> list[tuple[int, str, str | None]]:
         return [(f.pid or 0, f.image_name, f.image_path) for f in self._processes]
+
+    def path_of(self, pid: int) -> str | None:
+        for facts in self._processes:
+            if facts.pid == pid:
+                return facts.image_path
+        return None
 
     def running_processes(self) -> list[FileFacts]:
         return list(self._processes)

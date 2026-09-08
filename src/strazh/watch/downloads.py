@@ -27,8 +27,12 @@ from strazh.core.journal import Event, EventKind
 from strazh.core.models import Action, FileFacts, Verdict
 from strazh.core.quarantine import quarantine
 
-INTERVAL = 3.0
+INTERVAL = 5.0
 SUFFIXES = {".exe", ".msi", ".com", ".scr", ".bat", ".cmd", ".ps1"}
+MAX_ENTRIES_PER_PASS = 4000
+"""Во временной папке бывают десятки тысяч файлов. Смотреть их все за один
+проход незачем: установщик там не залежится, а следующий проход через
+несколько секунд досмотрит остальное."""
 SETTLE_SECONDS = 2.0
 """Файл, который прямо сейчас пишут, трогать нельзя: браузер ещё не закончил
 скачивание. Ждём, пока размер перестанет меняться."""
@@ -81,6 +85,11 @@ class DownloadWatcher:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._checked: dict[str, float] = {}
+        # Время последнего изменения самой папки. Пока оно не менялось, в
+        # папке ничего не появлялось и не исчезало — читать её содержимое
+        # незачем. Одна проверка вместо перечисления всех файлов: в папке
+        # загрузок их бывают тысячи, а проверка идёт круглые сутки.
+        self._folder_stamp: dict[str, float] = {}
         self.caught_count = 0
 
     def dirs(self) -> list[Path]:
@@ -124,27 +133,61 @@ class DownloadWatcher:
         return out
 
     def _candidates(self, folder: Path) -> list[Path]:
-        try:
-            entries = list(folder.iterdir())
-        except OSError:
+        """Что в папке появилось нового.
+
+        Через `os.scandir`, а не через перечисление с последующим опросом
+        каждого файла. На Windows сведения о размере и времени приходят
+        вместе со списком, и отдельный запрос к диску на каждый файл не
+        нужен. Разница решает: во временной папке бывают тысячи файлов, а
+        обход идёт круглые сутки.
+        """
+        if not self._folder_changed(folder):
             return []
         out: list[Path] = []
         now = time.time()
-        for entry in entries:
-            if entry.suffix.casefold() not in SUFFIXES:
-                continue
-            try:
-                stat = entry.stat()
-            except OSError:
-                continue
-            if now - stat.st_mtime < SETTLE_SECONDS:
-                continue
-            key = str(entry).casefold()
-            if self._checked.get(key) == stat.st_mtime:
-                continue
-            self._checked[key] = stat.st_mtime
-            out.append(entry)
+        seen = 0
+        try:
+            with os.scandir(folder) as entries:
+                for entry in entries:
+                    seen += 1
+                    if seen > MAX_ENTRIES_PER_PASS:
+                        break
+                    name = entry.name
+                    dot = name.rfind(".")
+                    if dot < 0 or name[dot:].casefold() not in SUFFIXES:
+                        continue
+                    try:
+                        stat = entry.stat()
+                    except OSError:
+                        continue
+                    if not entry.is_file():
+                        continue
+                    if now - stat.st_mtime < SETTLE_SECONDS:
+                        continue
+                    key = entry.path.casefold()
+                    if self._checked.get(key) == stat.st_mtime:
+                        continue
+                    self._checked[key] = stat.st_mtime
+                    out.append(Path(entry.path))
+        except OSError:
+            return out
         return out
+
+    def _folder_changed(self, folder: Path) -> bool:
+        """Менялось ли содержимое папки с прошлого раза.
+
+        Возвращает истину и когда папку не удалось опросить: пропустить
+        проверку из-за сбоя одной операции нельзя, лучше лишний обход.
+        """
+        key = str(folder).casefold()
+        try:
+            stamp = folder.stat().st_mtime
+        except OSError:
+            return True
+        if self._folder_stamp.get(key) == stamp:
+            return False
+        self._folder_stamp[key] = stamp
+        return True
 
     def check(self, path: Path) -> Caught | None:
         """Проверить один файл и, если он из каталога, убрать его в карантин."""

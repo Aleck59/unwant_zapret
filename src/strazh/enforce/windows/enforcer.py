@@ -15,6 +15,7 @@ from strazh.enforce.windows import peinfo, procs
 from strazh.enforce.windows.defender import DefenderPuaMechanism
 from strazh.enforce.windows.disallowrun import DisallowRunMechanism
 from strazh.enforce.windows.firewall import FirewallMechanism
+from strazh.enforce.windows.gpo import GroupPolicyMechanism
 from strazh.enforce.windows.hostsfile import HostsMechanism
 from strazh.enforce.windows.ifeo import IfeoMechanism
 from strazh.enforce.windows.installed import installed_programs
@@ -41,6 +42,8 @@ class WindowsEnforcer(Enforcer):
             out.append(IfeoMechanism())
         if m.srp:
             out.append(SrpMechanism())
+        if m.group_policy:
+            out.append(GroupPolicyMechanism())
         if m.disallow_run:
             out.append(DisallowRunMechanism())
         if m.firewall:
@@ -55,6 +58,9 @@ class WindowsEnforcer(Enforcer):
 
     def process_list(self) -> list[tuple[int, str, str | None]]:
         return [(e.pid, e.name, e.path) for e in procs.list_processes()]
+
+    def path_of(self, pid: int) -> str | None:
+        return procs.image_path(pid)
 
     def running_processes(self) -> list[FileFacts]:
         out: list[FileFacts] = []

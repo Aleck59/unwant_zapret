@@ -33,6 +33,19 @@ DESCRIPTION_PREFIX = "Strazh: "
 """По этой пометке правило узнаётся при откате, даже если файл состояния
 потеряли. Чужие правила SAFER программа не трогает никогда."""
 
+_NAMESPACE = uuid.UUID("6f9619ff-8b86-d011-b42d-00c04fc964ff")
+
+
+def rule_guid(pattern: str) -> str:
+    """Опознаватель правила, выведенный из самой маски.
+
+    Случайный опознаватель был бы проще, но означал бы, что повторное
+    применение с потерянным файлом состояния заводит второе такое же
+    правило, потом третье. Выведенный из маски — всегда один и тот же, и
+    повторное применение просто переписывает то, что уже стоит.
+    """
+    return "{" + str(uuid.uuid5(_NAMESPACE, f"strazh:srp:{pattern.casefold()}")).upper() + "}"
+
 
 def _filetime_now() -> int:
     epoch = datetime(1601, 1, 1, tzinfo=UTC)
@@ -74,7 +87,7 @@ class SrpMechanism(Mechanism):
         for op in ops:
             if is_protected(op.key) or op.key.casefold() in existing:
                 continue
-            rule_id = "{" + str(uuid.uuid4()).upper() + "}"
+            rule_id = rule_guid(op.key)
             path = f"{DISALLOWED}\\{rule_id}"
             try:
                 reg.write_value(reg.HKLM, path, "ItemData", op.key, kind=_expand_sz())
