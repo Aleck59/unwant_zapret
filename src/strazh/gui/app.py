@@ -308,8 +308,36 @@ def main() -> int:
             f"{exc}\nПроверьте, что установлен tkinter (в Windows он входит в состав Python).\n"
         )
         return 1
+    except Exception as exc:
+        # У собранной без консоли программы некуда написать разбор ошибки:
+        # человек увидит вспышку окна и ничего больше. Показываем причину.
+        _report_startup_failure(exc)
+        return 1
     window.mainloop()
     return 0
+
+
+def _report_startup_failure(exc: BaseException) -> None:
+    import traceback
+
+    details = "".join(traceback.format_exception(exc))
+    sys.stderr.write(details)
+    try:
+        from strazh import paths
+
+        paths.ensure_dirs()
+        (paths.machine_dir() / "startup-error.txt").write_text(details, encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        from tkinter import messagebox
+
+        messagebox.showerror(
+            "Страж не запустился",
+            f"{exc}\n\nПодробности записаны в startup-error.txt рядом с каталогом.",
+        )
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

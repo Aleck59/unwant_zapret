@@ -258,6 +258,7 @@ class TestEventSources:
         watcher.start()
         try:
             assert watcher.running
+            assert watcher.wait_ready(10), "источник событий не поднялся"
             assert watcher.source_title == "опрос списка процессов"
             listing.append(FileFacts(image_name="360tray.exe", pid=42))
             deadline = time.time() + 5

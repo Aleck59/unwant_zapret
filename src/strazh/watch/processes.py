@@ -56,6 +56,7 @@ class ProcessWatcher:
         self._safety_sweep = safety_sweep
         self._queue: queue.Queue[ProcessEvent] = queue.Queue(maxsize=4096)
         self._source: EventSource | None = None
+        self._ready = threading.Event()
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         # Что уже проверяли: путь → можно ли. Разбор ресурса версии стоит
@@ -69,7 +70,10 @@ class ProcessWatcher:
         if self._thread is not None and self._thread.is_alive():
             return
         self._stop.clear()
-        self._source = self._open_source()
+        self._ready.clear()
+        # Источник открывается внутри потока, а не здесь. Подписка ждёт, пока
+        # поднимется PowerShell, и это секунды — окно всё это время стояло бы
+        # мёртвым, а человек решил бы, что программа зависла на запуске.
         self._thread = threading.Thread(target=self._loop, name="strazh-procwatch", daemon=True)
         self._thread.start()
 
@@ -112,7 +116,15 @@ class ProcessWatcher:
 
     @property
     def source_title(self) -> str:
-        return self._source.title if self._source is not None else "не запущено"
+        return self._source.title if self._source is not None else "запускается…"
+
+    def wait_ready(self, timeout: float = 30.0) -> bool:
+        """Дождаться, пока источник событий поднимется.
+
+        Окну это не нужно — оно показывает «запускается…» и живёт дальше, —
+        но проверкам и командной строке нужно знать, чем в итоге ловим.
+        """
+        return self._ready.wait(timeout)
 
     def forget_cache(self) -> None:
         """Сбросить память о проверенных образах — после правки каталога."""
@@ -122,6 +134,8 @@ class ProcessWatcher:
 
     def _loop(self) -> None:
         """Ожидание события. В простое поток стоит здесь и не потребляет ничего."""
+        self._source = self._open_source()
+        self._ready.set()
         while not self._stop.is_set():
             try:
                 event = self._queue.get(timeout=self._safety_sweep)
