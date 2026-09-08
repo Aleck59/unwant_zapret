@@ -64,13 +64,17 @@ def test_lock_dies_with_its_holder(tmp_path: Path) -> None:
         from strazh.core.lock import SingleInstance
         lock = SingleInstance(Path({str(path)!r}))
         assert lock.acquire()
-        print("взял", flush=True)
+        print("taken", flush=True)
         time.sleep(60)
     """)
     child = subprocess.Popen([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True)
     try:
         assert child.stdout is not None
-        assert child.stdout.readline().strip() == "взял"
+        # Знак латиницей намеренно: он идёт через поток вывода дочернего
+        # процесса, а на Windows тот по умолчанию не в UTF-8. Делать
+        # опознавательный знак заложником кодировки — то же самое, что уже
+        # было исправлено в подписке на события.
+        assert child.stdout.readline().strip() == "taken"
         assert SingleInstance(path).acquire() is False, "замок не удержан живым процессом"
     finally:
         child.kill()
