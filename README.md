@@ -205,7 +205,7 @@ strazh-cli watch                      фоновый страж
 
 ```bash
 pip install -e ".[dev]"
-pytest                          # 131 проверка
+pytest                          # ядро, каталог, план, наблюдатели
 ruff check . && ruff format --check .
 mypy                            # проверяется как Windows
 python tools/validate_catalog.py

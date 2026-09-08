@@ -31,8 +31,8 @@ jobs:
     name: Разбор кода
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: pip
@@ -51,8 +51,8 @@ jobs:
     name: Каталог целей
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Проверить файлы каталога
@@ -67,8 +67,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ['3.11', '3.12']
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -78,7 +78,7 @@ jobs:
         run: pytest --cov=strazh --cov-report=term-missing --cov-report=xml
       - name: Сохранить покрытие
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.xml
@@ -88,7 +88,7 @@ jobs:
     name: Окно на подставном экране
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Поставить tkinter и Xvfb
         # Берём системный Python: сборки actions/setup-python зависят от
         # библиотек Tk, которых на образе может не оказаться, а системный
@@ -104,8 +104,8 @@ jobs:
     runs-on: windows-latest
     needs: [lint, test]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: pip
@@ -125,7 +125,7 @@ jobs:
             if (-not (Test-Path "dist\$name")) { throw "не собран $name" }
           }
         shell: pwsh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: strazh-windows
           path: dist/
