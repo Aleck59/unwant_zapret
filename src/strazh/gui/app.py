@@ -276,6 +276,9 @@ class StrazhWindow(tk.Tk):
 
 
 def main() -> int:
+    from strazh import console
+
+    console.setup()
     dry_run = "--dry-run" in sys.argv
     try:
         window = StrazhWindow(dry_run=dry_run)

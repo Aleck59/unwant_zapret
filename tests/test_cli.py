@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from strazh.cli import main
 
 
@@ -93,3 +95,28 @@ def test_no_command_prints_help(home: Path, capsys) -> None:
     code = main([])
     assert code == 0
     assert "usage" in capsys.readouterr().out.lower()
+
+
+def test_version_prints_in_russian(home: Path, capsys) -> None:
+    """`--version` печатает argparse, а не наш код, и на консоли Windows с
+    кодовой страницей 866 это когда-то роняло программу до начала работы."""
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--version"])
+    assert exit_info.value.code == 0
+    assert "Страж" in capsys.readouterr().out
+
+
+def test_help_prints_in_russian(home: Path, capsys) -> None:
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    assert "нежелательного" in capsys.readouterr().out
+
+
+def test_console_setup_is_safe_anywhere() -> None:
+    """Настройка вывода не должна падать нигде: ни без консоли, ни в чужой
+    системе. Отказ настроиться — не повод не запуститься."""
+    from strazh import console
+
+    console.setup()
+    console._reconfigure(None)
+    console._reconfigure(object())

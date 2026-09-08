@@ -53,21 +53,26 @@ class WindowsEnforcer(Enforcer):
 
     # ── осмотр системы ────────────────────────────────────────────────────────
 
+    def process_list(self) -> list[tuple[int, str, str | None]]:
+        return [(e.pid, e.name, e.path) for e in procs.list_processes()]
+
     def running_processes(self) -> list[FileFacts]:
         out: list[FileFacts] = []
-        for entry in procs.list_processes():
-            facts = FileFacts(image_name=entry.name, image_path=entry.path, pid=entry.pid)
-            if entry.path:
-                info = peinfo.version_info(entry.path)
-                facts = FileFacts(
-                    image_name=entry.name,
-                    image_path=entry.path,
-                    original_filename=info.original_filename,
-                    product_name=info.product_name,
-                    company_name=info.company_name,
-                    pid=entry.pid,
+        for pid, name, path in self.process_list():
+            if path is None:
+                out.append(FileFacts(image_name=name, pid=pid))
+                continue
+            facts = self.facts_for_path(path, with_signature=False)
+            out.append(
+                FileFacts(
+                    image_name=name,
+                    image_path=path,
+                    original_filename=facts.original_filename,
+                    product_name=facts.product_name,
+                    company_name=facts.company_name,
+                    pid=pid,
                 )
-            out.append(facts)
+            )
         return out
 
     def installed_programs(self) -> list[InstalledProgram]:
@@ -76,7 +81,9 @@ class WindowsEnforcer(Enforcer):
     def terminate(self, pid: int) -> bool:
         return procs.terminate(pid)
 
-    def facts_for_path(self, path: str, *, with_hash: bool = False) -> FileFacts:
+    def facts_for_path(
+        self, path: str, *, with_hash: bool = False, with_signature: bool = True
+    ) -> FileFacts:
         info = peinfo.version_info(path)
         return FileFacts(
             image_name=os.path.basename(path),
@@ -84,7 +91,7 @@ class WindowsEnforcer(Enforcer):
             original_filename=info.original_filename,
             product_name=info.product_name,
             company_name=info.company_name,
-            publisher=peinfo.signature_subject(path),
+            publisher=peinfo.signature_subject(path) if with_signature else None,
             sha256=sha256_file(path) if with_hash else None,
         )
 
@@ -127,9 +134,15 @@ MAX_EXECUTABLES_PER_FOLDER = 40
 
 
 def _executables_in(folder: Path) -> list[Path]:
+    """Первые несколько десятков файлов из папки установки.
+
+    Без сортировки намеренно: `sorted()` заставил бы обойти папку целиком, а
+    у защитного пакета в ней бывают тысячи файлов — ради сорока правил
+    брандмауэра это неоправданно.
+    """
     out: list[Path] = []
     try:
-        for entry in sorted(folder.rglob("*.exe")):
+        for entry in folder.rglob("*.exe"):
             out.append(entry)
             if len(out) >= MAX_EXECUTABLES_PER_FOLDER:
                 break

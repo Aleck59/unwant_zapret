@@ -12,7 +12,7 @@ import sys
 import time
 from pathlib import Path
 
-from strazh import paths
+from strazh import console, paths
 from strazh.app import Strazh
 from strazh.core.catalog import CATEGORIES
 from strazh.core.models import Severity
@@ -290,6 +290,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # До разбора аргументов: argparse печатает `--help` и `--version` сам, и
+    # на русской консоли это падало раньше, чем программа начинала работать.
+    console.setup()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):

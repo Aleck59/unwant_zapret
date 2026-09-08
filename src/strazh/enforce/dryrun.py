@@ -82,6 +82,9 @@ class DryRunEnforcer(Enforcer):
         ]
         return [PlanOnlyMechanism(key, builder) for key, on, builder in wanted if on]
 
+    def process_list(self) -> list[tuple[int, str, str | None]]:
+        return [(f.pid or 0, f.image_name, f.image_path) for f in self._processes]
+
     def running_processes(self) -> list[FileFacts]:
         return list(self._processes)
 
@@ -91,9 +94,14 @@ class DryRunEnforcer(Enforcer):
     def terminate(self, pid: int) -> bool:
         return False
 
-    def facts_for_path(self, path: str, *, with_hash: bool = False) -> FileFacts:
+    def facts_for_path(
+        self, path: str, *, with_hash: bool = False, with_signature: bool = True
+    ) -> FileFacts:
         from strazh.core.hashing import sha256_file
 
+        known = {f.image_path: f for f in self._processes if f.image_path}
+        if path in known:
+            return known[path]
         return FileFacts(
             image_name=os.path.basename(path),
             image_path=path,

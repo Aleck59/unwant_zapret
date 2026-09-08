@@ -23,10 +23,17 @@ class FakeEnforcer(DryRunEnforcer):
     def __init__(self, processes: list[FileFacts]) -> None:
         super().__init__(processes)
         self.terminated: list[int] = []
+        self.parsed = 0
 
     def terminate(self, pid: int) -> bool:
         self.terminated.append(pid)
         return True
+
+    def facts_for_path(
+        self, path: str, *, with_hash: bool = False, with_signature: bool = True
+    ) -> FileFacts:
+        self.parsed += 1
+        return super().facts_for_path(path, with_hash=with_hash, with_signature=with_signature)
 
 
 class TestDownloadWatcher:
@@ -121,13 +128,37 @@ class TestProcessWatcher:
         assert enforcer.terminated == [42]
 
     def test_renamed_process_is_caught_by_original_name(self, home: Path) -> None:
+        """Исходное имя лежит в ресурсе версии файла, поэтому у процесса
+        обязан быть путь: без него читать нечего. Так же будет и в бою."""
         core = Strazh(dry_run=True)
         enforcer = FakeEnforcer(
-            [FileFacts(image_name="not-suspicious.exe", original_filename="360Safe.exe", pid=7)]
+            [
+                FileFacts(
+                    image_name="not-suspicious.exe",
+                    image_path="C:\\Users\\Пётр\\not-suspicious.exe",
+                    original_filename="360Safe.exe",
+                    pid=7,
+                )
+            ]
         )
         core.enforcer = enforcer
-        assert enforcer.terminated == [] and ProcessWatcher(core).sweep()
+        assert ProcessWatcher(core).sweep()
         assert enforcer.terminated == [7]
+
+    def test_expensive_parsing_happens_once_per_image(self, home: Path) -> None:
+        """Наблюдатель работает постоянно, поэтому ресурс версии обязан
+        читаться один раз на образ, а не каждую секунду заново."""
+        core = Strazh(dry_run=True)
+        enforcer = FakeEnforcer(
+            [FileFacts(image_name="notepad.exe", image_path="C:\\Windows\\notepad.exe", pid=3)]
+        )
+        core.enforcer = enforcer
+        watcher = ProcessWatcher(core)
+        watcher.sweep()
+        first = enforcer.parsed
+        watcher._known_pids.clear()  # как будто процесс перезапустился
+        watcher.sweep()
+        assert enforcer.parsed == first, "образ разобран повторно"
 
     def test_allowed_process_is_not_rechecked(self, home: Path) -> None:
         core = Strazh(dry_run=True)

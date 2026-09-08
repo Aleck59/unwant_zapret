@@ -92,25 +92,43 @@ class ProcessWatcher:
             self._stop.wait(self._interval)
 
     def sweep(self) -> list[Blocked]:
-        """Один проход по списку процессов."""
+        """Один проход по списку процессов.
+
+        Дорогое считается только для незнакомого. Сначала берётся дешёвый
+        снимок — номер, имя, путь; отсеиваются уже виденные номера и уже
+        разобранные образы; и лишь потом читается ресурс версии, а подпись —
+        только если и он не помог.
+        """
         matcher = self._core.matcher
+        enforcer = self._core.enforcer
         out: list[Blocked] = []
         current: set[int] = set()
 
-        for facts in self._core.enforcer.running_processes():
-            if facts.pid is not None:
-                current.add(facts.pid)
-                if facts.pid in self._known_pids:
-                    # Процесс уже видели и не тронули — значит, разрешён.
-                    continue
-
-            key = (facts.image_path or facts.image_name).casefold()
-            cached = self._seen.get(key)
-            if cached is True:
+        for pid, name, path in enforcer.process_list():
+            current.add(pid)
+            if pid in self._known_pids:
+                # Процесс уже видели и не тронули — значит, разрешён.
                 continue
 
+            key = (path or name).casefold()
+            if self._seen.get(key) is True:
+                continue
+
+            if path:
+                probe = enforcer.facts_for_path(path, with_signature=False)
+                facts = FileFacts(
+                    image_name=name,
+                    image_path=path,
+                    original_filename=probe.original_filename,
+                    product_name=probe.product_name,
+                    company_name=probe.company_name,
+                    pid=pid,
+                )
+            else:
+                facts = FileFacts(image_name=name, pid=pid)
+
             verdict = matcher.evaluate(facts)
-            if verdict.allowed and facts.image_path and matcher.targets:
+            if verdict.allowed and path and matcher.targets:
                 # Дешёвые признаки молчат — разбираем подпись. Она дороже
                 # всего остального вместе взятого, поэтому только здесь и
                 # только один раз на образ.
@@ -122,7 +140,7 @@ class ProcessWatcher:
                 continue
 
             self._seen[key] = False
-            terminated = self._core.enforcer.terminate(facts.pid) if facts.pid else False
+            terminated = enforcer.terminate(pid) if pid else False
             blocked = Blocked(facts=facts, verdict=verdict, terminated=terminated)
             out.append(blocked)
             self.blocked_count += 1
@@ -135,11 +153,7 @@ class ProcessWatcher:
                     ),
                     target_id=verdict.target_id or "",
                     target_name=verdict.target_name or "",
-                    detail={
-                        "path": facts.image_path or "",
-                        "pid": facts.pid or 0,
-                        "terminated": terminated,
-                    },
+                    detail={"path": path or "", "pid": pid, "terminated": terminated},
                 )
             )
             if self._on_block is not None:

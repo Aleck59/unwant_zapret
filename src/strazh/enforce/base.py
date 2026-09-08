@@ -114,8 +114,18 @@ class Enforcer(ABC):
         """Механизмы, включённые в настройках, в порядке применения."""
 
     @abstractmethod
+    def process_list(self) -> list[tuple[int, str, str | None]]:
+        """Дешёвый снимок: номер, имя файла, путь.
+
+        Отдельно от `running_processes` потому, что наблюдатель просматривает
+        список раз в секунду, а разбор ресурса версии и подписи стоит на
+        порядки дороже перечисления. Дорогое считается только для того, чего
+        мы ещё не видели.
+        """
+
+    @abstractmethod
     def running_processes(self) -> list[FileFacts]:
-        """Что сейчас работает — для проверки уже запущенного."""
+        """Что сейчас работает, со всеми признаками — для проверки машины."""
 
     @abstractmethod
     def installed_programs(self) -> list[InstalledProgram]:
@@ -126,8 +136,14 @@ class Enforcer(ABC):
         """Снять процесс. Возвращает, получилось ли."""
 
     @abstractmethod
-    def facts_for_path(self, path: str, *, with_hash: bool = False) -> FileFacts:
-        """Собрать признаки файла: имя, исходное имя, издателя, при нужде сумму."""
+    def facts_for_path(
+        self, path: str, *, with_hash: bool = False, with_signature: bool = True
+    ) -> FileFacts:
+        """Собрать признаки файла.
+
+        Разбор подписи и подсчёт суммы отключаемы: на горячем пути они не
+        нужны, пока не промахнулись все дешёвые признаки.
+        """
 
     # ── общий сценарий, одинаковый на всех системах ──────────────────────────
 
