@@ -31,7 +31,10 @@ from dataclasses import dataclass
 
 _NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
-READY_MARK = "#готов"
+READY_MARK = "#strazh-ready"
+"""Метка «подписка встала». Латиницей намеренно: строка проходит через
+командную строку Windows и обратно через поток вывода PowerShell, и делать
+опознавательный знак заложником кодировки незачем."""
 STARTUP_TIMEOUT = 20.0
 """Сколько ждать первой строки от подписки. PowerShell поднимается неспешно,
 но если за это время он не отозвался — переходим на опрос, а не ждём дальше."""
@@ -51,7 +54,11 @@ _WATCHER_SCRIPT = """
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-function Start-Watch($queryText) {
+# $isTrace передаётся явно, а не выясняется по свойствам события. У двух
+# запросов разная форма ответа, и «попробовать одно свойство, если нет —
+# другое» здесь не работает: обращение к отсутствующему свойству объекта WMI
+# в PowerShell не возвращает пустоту, а бросает исключение.
+function Start-Watch($queryText, $isTrace) {
     $query = New-Object System.Management.WqlEventQuery $queryText
     $watcher = New-Object System.Management.ManagementEventWatcher $query
     $watcher.Start()
@@ -59,11 +66,18 @@ function Start-Watch($queryText) {
     [Console]::Out.Flush()
     while ($true) {
         $item = $watcher.WaitForNextEvent()
-        $target = $item.TargetInstance
-        if ($target) { $id = $target.ProcessId; $label = $target.Name }
-        else { $id = $item.ProcessID; $label = $item.ProcessName }
-        [Console]::Out.WriteLine("$id`t$label")
-        [Console]::Out.Flush()
+        if ($isTrace) {
+            $id = $item.ProcessID
+            $label = $item.ProcessName
+        } else {
+            $target = $item.TargetInstance
+            $id = $target.ProcessId
+            $label = $target.Name
+        }
+        if ($id -and $label) {
+            [Console]::Out.WriteLine("$id`t$label")
+            [Console]::Out.Flush()
+        }
     }
 }
 
@@ -71,9 +85,9 @@ $fallback = "SELECT * FROM __InstanceCreationEvent WITHIN 1 " +
             "WHERE TargetInstance ISA 'Win32_Process'"
 
 try {
-    Start-Watch 'SELECT * FROM Win32_ProcessStartTrace'
+    Start-Watch 'SELECT * FROM Win32_ProcessStartTrace' $true
 } catch {
-    Start-Watch $fallback
+    Start-Watch $fallback $false
 }
 """.replace("@READY@", READY_MARK)
 
