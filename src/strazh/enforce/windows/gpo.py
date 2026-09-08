@@ -53,9 +53,44 @@ REGISTRY_CSE = "[{35378EAC-683F-11D2-A89A-00C04FBBCFA2}{D02B1F72-3407-48AE-BA88-
 
 _NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
-OUR_KEYS = (SAFER_BASE, EXPLORER_POLICY)
-"""Ветки, которые принадлежат нам. Всё остальное в файле политики — чужое, и
-при откате мы его не касаемся."""
+SAFER_SETTINGS = ("DefaultLevel", "TransparentEnabled", "PolicyScope", "authenticodeenabled")
+
+
+def strip_ours(entries: list[preg.Entry]) -> list[preg.Entry]:
+    """Убрать из политики только наши записи.
+
+    Соблазн был вырезать ветку целиком — по пути ключа. Так делать нельзя:
+    в `Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer` рядом с нашим
+    `DisallowRun` лежат десятки других настроек проводника, которые мог
+    поставить администратор, а в ветке SAFER — правила, написанные вручную.
+    Вырезание по пути стёрло бы их вместе с нашими и не вернуло обратно.
+
+    Поэтому наши записи опознаются поимённо: четыре общие настройки SAFER,
+    правила с нашей пометкой в описании и список запрета запуска. Всё
+    остальное остаётся на месте, даже если лежит в том же ключе.
+    """
+    ours: set[str] = set()
+    for entry in entries:
+        if (
+            entry.value == "Description"
+            and entry.key.casefold().startswith((SAFER_BASE + "\\0\\paths\\").casefold())
+            and entry.as_text().startswith(DESCRIPTION_PREFIX)
+        ):
+            ours.add(entry.key.casefold())
+
+    kept: list[preg.Entry] = []
+    for entry in entries:
+        key = entry.key.casefold()
+        if key in ours:
+            continue
+        if key == SAFER_BASE.casefold() and entry.value in SAFER_SETTINGS:
+            continue
+        if key == EXPLORER_POLICY.casefold() and entry.value == "DisallowRun":
+            continue
+        if key == DISALLOW_LIST.casefold():
+            continue
+        kept.append(entry)
+    return kept
 
 
 def policy_root() -> Path:
@@ -230,7 +265,7 @@ class GroupPolicyMechanism(Mechanism):
                 (user_pol(), user_entries, "пользователи"),
             ):
                 self._backup_once(path, state)
-                kept = preg.without_keys(self._load(path), OUR_KEYS)
+                kept = strip_ours(self._load(path))
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(preg.dumps(kept + entries))
                 written += len(entries)
@@ -270,7 +305,7 @@ class GroupPolicyMechanism(Mechanism):
                 else:
                     # Файла не было: вычищаем свои записи, а если ничего
                     # чужого не осталось — убираем и файл.
-                    kept = preg.without_keys(self._load(path), OUR_KEYS)
+                    kept = strip_ours(self._load(path))
                     if kept:
                         path.write_bytes(preg.dumps(kept))
                     else:

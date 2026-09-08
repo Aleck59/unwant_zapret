@@ -255,3 +255,60 @@ class TestMechanism:
         result = mechanism.apply([target()], State())
         assert not result.ok
         assert gpo.machine_pol().read_bytes() == "мусор, но чей-то".encode()
+
+
+class TestPreciseStripping:
+    """Соблазн вырезать нашу ветку по пути ключа велик и приводит к беде:
+    рядом с нашими настройками в тех же ключах лежат чужие."""
+
+    def test_foreign_explorer_policies_survive(self) -> None:
+        from strazh.enforce.windows.gpo import strip_ours
+
+        foreign = preg.Entry.dword(EXPLORER_POLICY, "NoRun", 1)
+        ours = preg.Entry.dword(EXPLORER_POLICY, "DisallowRun", 1)
+        listed = preg.Entry.text(DISALLOW_LIST, "1", "bad.exe")
+        assert strip_ours([foreign, ours, listed]) == [foreign]
+
+    def test_hand_written_safer_rules_survive(self) -> None:
+        """Правило SAFER без нашей пометки написал администратор."""
+        from strazh.enforce.windows.gpo import strip_ours
+
+        alien_key = f"{SAFER_BASE}\\0\\Paths\\{{11111111-1111-1111-1111-111111111111}}"
+        alien = [
+            preg.Entry.text(alien_key, "ItemData", "*\\чужое\\*", expand=True),
+            preg.Entry.text(alien_key, "Description", "правило администратора"),
+        ]
+        guid = rule_guid("*\\bad\\*")
+        our_key = f"{SAFER_BASE}\\0\\Paths\\{guid}"
+        mine = [
+            preg.Entry.text(our_key, "ItemData", "*\\bad\\*", expand=True),
+            preg.Entry.text(our_key, "Description", "Strazh: sample"),
+        ]
+        assert strip_ours(alien + mine) == alien
+
+    def test_our_common_safer_settings_are_removed(self) -> None:
+        from strazh.enforce.windows.gpo import strip_ours
+
+        entries = [
+            preg.Entry.dword(SAFER_BASE, "DefaultLevel", 0x40000),
+            preg.Entry.dword(SAFER_BASE, "СвояНастройка", 1),
+        ]
+        kept = strip_ours(entries)
+        assert [e.value for e in kept] == ["СвояНастройка"]
+
+    def test_apply_and_revert_keep_foreign_explorer_policy(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setenv("STRAZH_GPO_ROOT", str(tmp_path / "GroupPolicy"))
+        from strazh.enforce.windows import gpo
+
+        mechanism = GroupPolicyMechanism(backup_dir=tmp_path / "backup")
+        foreign = preg.Entry.dword(EXPLORER_POLICY, "NoRun", 1)
+        gpo.user_pol().parent.mkdir(parents=True, exist_ok=True)
+        gpo.user_pol().write_bytes(preg.dumps([foreign]))
+
+        state = State()
+        mechanism.apply([target()], state)
+        assert foreign in preg.loads(gpo.user_pol().read_bytes())
+        mechanism.revert(state)
+        assert foreign in preg.loads(gpo.user_pol().read_bytes())
