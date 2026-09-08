@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "comment": "Спутники русскоязычных установщиков: то, что ставится галочкой по умолчанию вместе с бесплатной программой и потом меняет браузер, поиск и стартовую страницу.",
+  "targets": [
+    {
+      "id": "mailru-suite",
+      "name": "Спутник@Mail.ru, Amigo, Guard.Mail.ru",
+      "vendor": "VK (Mail.Ru Group)",
+      "category": "ru-bundleware",
+      "severity": "high",
+      "why": "Самый известный довесок русскоязычных установщиков: ставит браузер Amigo, панель «Спутник» и «защитник» Guard.Mail.ru, который возвращает подменённые настройки браузера обратно и мешает своему удалению.",
+      "match": {
+        "executables": [
+          "guardmailru.exe", "mailruupdater.exe", "amigo.exe", "sputnik.exe",
+          "mailrusputnik.exe", "mrgsuit.exe", "gmsrv.exe", "amigo_setup*.exe",
+          "mail.ru_agent*.exe", "magent.exe"
+        ],
+        "installers": ["amigo*setup*.exe", "*sputnik*setup*.exe", "*mailru*setup*.exe", "guard*mail*.exe"],
+        "publishers": ["Mail.Ru", "LLC Mail.Ru", "VK"],
+        "product_names": ["Амиго", "Amigo", "Спутник@Mail.Ru", "Guard.Mail.ru"],
+        "paths": ["*\\Amigo\\*", "*\\Mail.Ru\\*", "*\\MailRuUpdater\\*"],
+        "services": ["GuardMailRu", "MailRuUpdater"],
+        "scheduled_tasks": ["*Amigo*", "*MailRu*", "*Mail.Ru*"],
+        "domains": ["guard.mail.ru", "amigo.mail.ru"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "yandex-browser-manager",
+      "name": "Менеджер браузеров и Яндекс.Элементы",
+      "vendor": "Яндекс",
+      "category": "ru-bundleware",
+      "severity": "medium",
+      "why": "Речь не о самом браузере, а о довеске: «Менеджер браузеров» и «Элементы» ставятся вместе с чужими программами, меняют поиск и стартовую страницу и возвращают их обратно после ручной правки.",
+      "match": {
+        "executables": [
+          "browsermngr.exe", "yandexpacksetup.exe", "yandexelements*.exe",
+          "bmupdate.exe", "yandex_bar*.exe"
+        ],
+        "installers": ["yandexpack*.exe", "*yandex*elements*.exe", "browsermngr*.exe"],
+        "product_names": ["Менеджер браузеров", "Яндекс.Элементы"],
+        "paths": ["*\\Yandex\\BrowserManager\\*", "*\\Yandex\\YandexElements\\*"],
+        "services": ["BrowserManager"],
+        "scheduled_tasks": ["*BrowserManager*", "*YandexPack*"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "opencandy-installers",
+      "name": "Обёртки установщиков (OpenCandy, InstallCore, AirInstaller, OutBrowse, DomaIQ, Amonetize)",
+      "vendor": "разные",
+      "category": "adware-installer",
+      "severity": "high",
+      "why": "Это не программы, а обёртки: они принимают чужой установщик и добавляют к нему экраны с предложениями поставить что-нибудь ещё. Именно через них на машину попадает почти всё остальное из этого каталога.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "opencandy*.exe", "installcore*.exe", "airinstaller*.exe", "outbrowse*.exe",
+          "domaiq*.exe", "amonetize*.exe", "vittalia*.exe", "installiq*.exe",
+          "downloadadmin*.exe", "installmanager*.exe", "solimba*.exe", "somoto*.exe"
+        ],
+        "installers": [
+          "*opencandy*.exe", "*installcore*.exe", "*downloadadmin*.exe", "*installiq*.exe",
+          "*_setup_by_*.exe", "*downloadmanager*.exe"
+        ],
+        "publishers": ["SweetLabs", "InstallCore", "Amonetize", "Solimba", "Somoto", "DomaIQ"],
+        "paths": ["*\\OpenCandy\\*", "*\\InstallCore\\*"]
+      },
+      "actions": ["block_exec", "block_install"]
+    },
+    {
+      "id": "search-hijackers",
+      "name": "Перехватчики поиска (Search Protect, Conduit, MyWebSearch, Ask Toolbar, Wajam, Delta)",
+      "vendor": "разные",
+      "category": "adware-installer",
+      "severity": "high",
+      "why": "Меняют поиск, стартовую страницу и страницу новой вкладки, встраивают рекламу в выдачу и возвращают свои настройки после ручной правки.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "searchprotect.exe", "cltmng.exe", "cltmngsvc.exe", "apnstub.exe", "askpartnernetwork*.exe",
+          "mywebsearch*.exe", "wajam*.exe", "wajamupdater.exe", "deltasearch*.exe",
+          "vosteran*.exe", "snapdo*.exe", "conduit*.exe", "toolbarupdater.exe"
+        ],
+        "installers": ["*searchprotect*.exe", "*conduit*.exe", "*mywebsearch*.exe", "apnsetup*.exe", "wajam*.exe"],
+        "publishers": ["Conduit", "Client Connect", "APN", "Ask Partner Network", "Wajam Internet Technologies", "IronSource"],
+        "paths": ["*\\SearchProtect\\*", "*\\Conduit\\*", "*\\MyWebSearch\\*", "*\\Wajam\\*"],
+        "services": ["cltMngSvc", "SearchProtectService", "WajamUpdater"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    }
+  ]
+}

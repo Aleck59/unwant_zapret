@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "comment": "Слежка за человеком: перехват набранного на клавиатуре, снимки экрана, запись переписки и передача всего этого на чужую панель. В отличие от остальных разделов, здесь вред не побочный, а заявленный: продукты продаются именно для наблюдения за человеком без его ведома. Все записи включены с высоким уровнем.",
+  "targets": [
+    {
+      "id": "mspy",
+      "name": "mSpy",
+      "vendor": "mSpy",
+      "category": "stalkerware",
+      "severity": "high",
+      "why": "Продаётся как «родительский контроль», работает как скрытая слежка: перехват переписки, снимки экрана, положение устройства, доступ к записанному через веб-панель покупателя.",
+      "references": ["https://www.comparitech.com/blog/vpn-privacy/what-is-stalkerware/"],
+      "match": {
+        "executables": ["mspy*.exe", "mspyagent*.exe", "mspysvc.exe", "bmss*.exe"],
+        "installers": ["mspy*setup*.exe", "*mspy*install*.exe"],
+        "publishers": ["mSpy", "Altercon Group"],
+        "product_names": ["mSpy"],
+        "paths": ["*\\mSpy\\*"],
+        "services": ["mSpyService"],
+        "domains": ["mspy.com", "mspyonline.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "flexispy",
+      "name": "FlexiSPY",
+      "vendor": "FlexiSPY",
+      "category": "stalkerware",
+      "severity": "high",
+      "why": "Одна из старейших программ скрытого наблюдения: перехват звонков и переписки, включение микрофона, скрытие себя от списка программ.",
+      "references": ["https://iverify.io/blog/flexispy-the-spyware-tool-crossing-the-line-between-security-and-crime"],
+      "match": {
+        "executables": ["flexispy*.exe", "fsagent*.exe", "flexisvc.exe"],
+        "installers": ["flexispy*.exe"],
+        "publishers": ["FlexiSPY"],
+        "paths": ["*\\FlexiSPY\\*"],
+        "services": ["FlexiSPYService"],
+        "domains": ["flexispy.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "spyrix",
+      "name": "Spyrix Personal Monitor / Free Keylogger",
+      "vendor": "Spyrix",
+      "category": "stalkerware",
+      "severity": "high",
+      "why": "Перехват набранного, снимки экрана и запись действий с отправкой на веб-панель. Прячется от списка задач и работает без ведома того, за кем следят.",
+      "references": ["https://www.comparitech.com/blog/vpn-privacy/what-is-stalkerware/"],
+      "match": {
+        "executables": ["spyrix*.exe", "skpm.exe", "spyrixpersonalmonitor.exe", "spyrixkeylogger.exe"],
+        "installers": ["spyrix*setup*.exe", "spyrix*.exe"],
+        "publishers": ["Spyrix"],
+        "paths": ["*\\Spyrix*\\*"],
+        "services": ["SpyrixService"],
+        "domains": ["spyrix.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "hoverwatch-refog",
+      "name": "Hoverwatch / Refog Personal Monitor",
+      "vendor": "Refog",
+      "category": "stalkerware",
+      "severity": "high",
+      "why": "Скрытая запись набранного, переписки и посещённых страниц с отправкой на панель покупателя. Программа не показывает себя тому, за кем следит.",
+      "references": ["https://www.comparitech.com/blog/vpn-privacy/what-is-stalkerware/"],
+      "match": {
+        "executables": ["hoverwatch*.exe", "refog*.exe", "mpk.exe", "mpksvc.exe", "rfgsvc.exe"],
+        "installers": ["hoverwatch*.exe", "refog*setup*.exe"],
+        "publishers": ["Refog", "Hoverwatch"],
+        "paths": ["*\\Refog*\\*", "*\\Hoverwatch\\*"],
+        "services": ["RefogService", "HoverwatchService"],
+        "domains": ["hoverwatch.com", "refog.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "classic-keyloggers",
+      "name": "Перехватчики клавиатуры (Ardamax, Perfect Keylogger, Elite Keylogger, Actual Spy, Revealer, KidLogger)",
+      "vendor": "разные",
+      "category": "stalkerware",
+      "severity": "high",
+      "why": "Давно известное семейство перехватчиков набранного. Ставятся скрытно, прячут себя из списка программ и папок, отправляют собранное почтой или на сервер.",
+      "references": ["https://petronellatech.com/blog/digital-stalking-detection-guide/"],
+      "match": {
+        "executables": [
+          "akl.exe", "ardamax*.exe", "akv.exe", "bpk.exe", "bpkwc.exe", "elitekeylogger*.exe",
+          "actualspy*.exe", "rvlkl.exe", "revealer*.exe", "kidlogger*.exe", "bfk.exe",
+          "awardkeylogger*.exe", "familykeylogger*.exe", "allinonekeylogger*.exe",
+          "spytector*.exe", "netbull*.exe", "wwsystem.exe", "webwatcher*.exe",
+          "ikeymonitor*.exe", "realspymonitor*.exe", "snipersp*.exe", "micro_keylogger*.exe"
+        ],
+        "installers": [
+          "ardamax*.exe", "*keylogger*setup*.exe", "*keylogger*install*.exe",
+          "actualspy*.exe", "kidlogger*.exe", "webwatcher*.exe"
+        ],
+        "publishers": ["Ardamax Software", "BlazingTools", "WideStep", "Refog", "Awosoft"],
+        "product_names": ["Ardamax Keylogger", "Perfect Keylogger", "Elite Keylogger", "Actual Spy", "KidLogger"],
+        "paths": ["*\\Ardamax*\\*", "*\\Perfect Keylogger\\*", "*\\Elite Keylogger\\*", "*\\KidLogger\\*"],
+        "services": ["ArdamaxService", "KidLoggerService", "WebWatcherService"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "employee-monitoring",
+      "name": "Слежение за сотрудниками (StaffCop, Teramind, ActivTrak, Kickidler, Yaware)",
+      "vendor": "разные",
+      "category": "stalkerware",
+      "severity": "medium",
+      "enabled": false,
+      "why": "Запись выключена: на рабочей машине такие программы могут стоять законно и с ведома человека. Причина присутствия в каталоге — те же возможности, что у слежки: снимки экрана, перехват набранного, скрытый режим. Включите, если это домашний компьютер.",
+      "match": {
+        "executables": [
+          "staffcop*.exe", "teramind*.exe", "activtrak*.exe", "kickidler*.exe",
+          "yaware*.exe", "grabber.exe", "atagent.exe", "tmagent*.exe"
+        ],
+        "installers": ["staffcop*.exe", "teramind*.exe", "activtrak*.exe", "kickidler*.exe"],
+        "publishers": ["StaffCop", "Teramind", "Birch Grove Software", "Kickidler"],
+        "paths": ["*\\StaffCop\\*", "*\\Teramind\\*", "*\\ActivTrak\\*", "*\\Kickidler\\*"],
+        "services": ["StaffCopService", "TeramindAgent", "ActivTrakService"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    }
+  ]
+}

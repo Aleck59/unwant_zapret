@@ -1,0 +1,116 @@
+# Выпуск: тег вида v1.0.0 → сборка → запись в GitHub Releases.
+#
+# Сборка делается здесь, а не на машине разработчика, ровно по одной причине:
+# программа ставится с правами системы, и человек, который её скачивает,
+# должен уметь проверить, из какого исходного кода она собрана.
+
+name: Выпуск
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег. Пусто — версия из strazh/version.py'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Сборка
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[build,dev]"
+
+      - name: Узнать версию
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.tag }}"
+          if (-not $tag) {
+            $tag = "${{ github.ref_name }}"
+          }
+          if (-not $tag -or -not $tag.StartsWith("v")) {
+            $tag = "v" + (python -c "import sys; sys.path.insert(0,'src'); from strazh.version import __version__; print(__version__)")
+          }
+          "value=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "версия: $tag"
+
+      - name: Сверить версию с тегом
+        # Тег v1.2.3 и version.py, где написано 1.0.0, — обычная и очень
+        # неприятная ошибка: выпуск уходит с чужим номером внутри.
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $inside = "v" + (python -c "import sys; sys.path.insert(0,'src'); from strazh.version import __version__; print(__version__)")
+          if ($inside -ne "${{ github.ref_name }}") {
+            throw "тег ${{ github.ref_name }}, а в version.py $inside"
+          }
+
+      - name: Проверки перед выпуском
+        run: pytest -q
+
+      - name: Собрать
+        run: pyinstaller --noconfirm --clean packaging/strazh.spec
+
+      - name: Упаковать
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Compress-Archive -Path dist/*.exe -DestinationPath "release/strazh-$version-windows-x64.zip"
+          Get-ChildItem release -Filter *.zip | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -Append -Encoding utf8 release/SHA256SUMS.txt
+          }
+          Get-Content release/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release/
+
+  publish:
+    name: Запись в Releases
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+      - name: Выпустить
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.version }}
+          name: Страж ${{ needs.build.outputs.version }}
+          files: |
+            release/*.zip
+            release/SHA256SUMS.txt
+          body: |
+            Запрет запуска и установки нежелательного и шпионского ПО для Windows 10/11.
+
+            **Установка.** Скачайте архив, распакуйте, запустите `Strazh.exe`.
+            Программа попросит права администратора: без них не завести правила
+            запуска в общей ветке реестра.
+
+            **Проверка загрузки.** Суммы файлов — в `SHA256SUMS.txt`.
+            Собрано из исходного кода этим самым выпуском, журнал сборки
+            открыт во вкладке Actions.
+
+            **Отмена.** Всё, что программа меняет в системе, записывается в
+            `state.json` и снимается кнопкой «Выключить защиту» или командой
+            `Strazh.exe revert`.
+          generate_release_notes: true

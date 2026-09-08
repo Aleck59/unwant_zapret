@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "comment": "Два разных случая в одном файле. Средства удалённого доступа — законные программы, которыми пользуются мошенники: раздел выключен по умолчанию, потому что запретить их вслепую значит отрезать администратора от собственной машины. Добыча криптовалюты и обход лицензий включены: там законного применения нет.",
+  "targets": [
+    {
+      "id": "remote-access-tools",
+      "name": "Средства удалённого доступа из мошеннических схем (Ammyy Admin, RemoteUtilities, LiteManager, NetSupport, DWAgent)",
+      "vendor": "разные",
+      "category": "remote-access-abused",
+      "severity": "medium",
+      "enabled": false,
+      "why": "Программы законные, но именно их просят установить «сотрудники банка» и «служба поддержки Microsoft» по телефону. Раздел выключен по умолчанию: включайте на машине человека, которому такие звонки могут поступить, и не включайте, если пользуетесь ими сами.",
+      "match": {
+        "executables": [
+          "aa_v3.exe", "ammyy*.exe", "rutserv.exe", "rfusclient.exe", "romserver.exe",
+          "romfusclient.exe", "client32.exe", "dwagent*.exe", "rserver3.exe", "radmin*.exe"
+        ],
+        "installers": ["ammyy*.exe", "remoteutilities*.exe", "litemanager*.exe", "dwagent*.exe"],
+        "publishers": ["Ammyy", "Remote Utilities", "LiteManager", "NetSupport", "DWService"],
+        "product_names": ["Ammyy Admin", "Remote Utilities", "LiteManager", "NetSupport Manager"],
+        "paths": ["*\\Ammyy\\*", "*\\Remote Utilities*\\*", "*\\LiteManager*\\*", "*\\NetSupport\\*"],
+        "services": ["RManService", "rutserv", "Client32", "DWAgent"],
+        "domains": ["ammyy.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "hidden-miners",
+      "name": "Скрытая добыча криптовалюты (XMRig, NiceHash, Norton Crypto, unMineable)",
+      "vendor": "разные",
+      "category": "miner",
+      "severity": "high",
+      "why": "Занимает процессор и видеокарту, греет машину и сокращает срок её службы. Попадает и довеском к взломанным сборкам программ, и вместе с защитным пакетом, который включает добычу «в пользу пользователя».",
+      "match": {
+        "executables": [
+          "xmrig*.exe", "nicehash*.exe", "excavator.exe", "nhm*.exe", "unmineable*.exe",
+          "cgminer*.exe", "ccminer*.exe", "phoenixminer*.exe", "lolminer*.exe",
+          "t-rex*.exe", "gminer*.exe", "nbminer*.exe", "ncrypt.exe", "minerd*.exe"
+        ],
+        "installers": ["xmrig*.exe", "nicehash*setup*.exe", "unmineable*.exe", "*miner*setup*.exe"],
+        "product_names": ["XMRig", "NiceHash Miner", "PhoenixMiner", "Norton Crypto"],
+        "paths": ["*\\xmrig*\\*", "*\\NiceHash*\\*"],
+        "services": ["NiceHashMiner", "XMRigService"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "quarantine"]
+    },
+    {
+      "id": "license-crackers",
+      "name": "Обход лицензий (KMSPico, KMSAuto, AutoKMS, Re-Loader)",
+      "vendor": "разные",
+      "category": "crack-tool",
+      "severity": "high",
+      "why": "Работают с правами системы, отключают защиту Windows ради собственной работы и остаются в автозапуске. Сборки этих программ регулярно раздаются вместе с программами скрытой добычи криптовалюты и похитителями паролей.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "kmspico*.exe", "kmsauto*.exe", "autokms*.exe", "re-loader*.exe", "reloader*.exe",
+          "kms_vl_all*.exe", "kmseldi.exe", "activator*.exe", "aact*.exe", "w10digitalactivation*.exe"
+        ],
+        "installers": ["kmspico*.exe", "kmsauto*.exe", "*activator*.exe", "*kms*setup*.exe"],
+        "product_names": ["KMSpico", "KMSAuto", "Re-Loader"],
+        "paths": ["*\\KMSpico\\*", "*\\KMSAuto*\\*"],
+        "services": ["KMSELDI", "AutoKMS"],
+        "scheduled_tasks": ["*AutoKMS*", "*KMS*"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services", "quarantine"]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "strazh"
+version = "1.0.0"
+description = "Страж — системная блокировка запуска и установки нежелательного и шпионского ПО для Windows 10/11"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Strazh contributors" }]
+keywords = ["windows", "security", "pup", "bloatware", "spyware", "blocker"]
+classifiers = [
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Operating System :: Microsoft :: Windows :: Windows 11",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+# Ядро намеренно живёт на стандартной библиотеке: реестр читает winreg,
+# окно рисует tkinter, процессы опрашивает ctypes. Чем меньше зависимостей,
+# тем меньше поверхность у программы, которая ставится с правами системы.
+dependencies = []
+
+[project.optional-dependencies]
+# Быстрое слежение за запуском процессов через события WMI. Без него
+# страж переходит на опрос снимков процессов — медленнее, но работает везде.
+fast-watch = ["pywin32>=306; sys_platform == 'win32'", "WMI>=1.5.1; sys_platform == 'win32'"]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+]
+build = ["pyinstaller>=6.6"]
+
+[project.urls]
+Homepage = "https://github.com/Aleck59/warehouse/tree/main/strazh"
+Issues = "https://github.com/Aleck59/warehouse/issues"
+
+[project.scripts]
+strazh = "strazh.cli:main"
+
+[project.gui-scripts]
+strazh-gui = "strazh.gui.app:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+strazh = ["data/catalog/*.json", "data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "RUF"]
+ignore = [
+  "RUF001", "RUF002", "RUF003",  # кириллица в строках и комментариях — это норма проекта
+  "SIM108",
+  # Windows не различает регистр в именах переменных окружения, а `SystemRoot`
+  # — то написание, которым их называет сама система и её документация.
+  "SIM112",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["strazh"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+# Проверяем код так, будто он на Windows. Иначе для проверки не существует ни
+# winreg, ни ctypes.WinDLL, и вся платформенная половина программы остаётся
+# без разбора — то есть без проверки оказывается именно то, что правит реестр.
+platform = "win32"

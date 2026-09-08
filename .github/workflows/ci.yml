@@ -1,0 +1,132 @@
+# Проверки на каждую отправку.
+#
+# Устроены веером: разбор кода, проверка каталога, проверки на двух системах
+# и сборка. Порядок задач не связан — падать они должны независимо, чтобы за
+# один прогон было видно всё сразу, а не первую же ошибку.
+#
+# Каталог проверяется отдельной задачей не для красоты: он правится чаще
+# кода, а ошибка в нём стоит столько же — лишняя маска отбирает у человека
+# нужную программу.
+
+name: Проверки
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: '1'
+
+jobs:
+  lint:
+    name: Разбор кода
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Стиль
+        run: ruff check --output-format=github .
+      - name: Оформление
+        run: ruff format --check .
+      - name: Типы
+        # Проверяем как Windows: иначе winreg и ctypes.WinDLL для проверки не
+        # существуют, и вся платформенная половина остаётся без разбора.
+        run: mypy
+
+  catalog:
+    name: Каталог целей
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Проверить файлы каталога
+        run: python tools/validate_catalog.py
+
+  test:
+    name: Проверки (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Прогон
+        run: pytest --cov=strazh --cov-report=term-missing --cov-report=xml
+      - name: Сохранить покрытие
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: warn
+
+  gui:
+    name: Окно на подставном экране
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Поставить tkinter и Xvfb
+        # Берём системный Python: сборки actions/setup-python зависят от
+        # библиотек Tk, которых на образе может не оказаться, а системный
+        # python3-tk ставится одной строкой и работает наверняка.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+      - name: Поднять окно и переключить разделы
+        run: xvfb-run -a python3 tools/gui_smoke.py
+
+  build:
+    name: Сборка для Windows
+    runs-on: windows-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[build]"
+      - name: Собрать
+        run: pyinstaller --noconfirm --clean packaging/strazh.spec
+      - name: Проверить, что собранное запускается
+        # Собранная программа обязана хотя бы отвечать на `--version`: иначе
+        # выяснится, что в неё не попал каталог, уже после выпуска.
+        run: |
+          dist\strazh-cli.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "собранная программа не запустилась" }
+          dist\strazh-cli.exe list --category stalkerware
+          if ($LASTEXITCODE -ne 0) { throw "в сборку не попал каталог" }
+          foreach ($name in 'Strazh.exe', 'strazh-cli.exe', 'strazh-deny.exe') {
+            if (-not (Test-Path "dist\$name")) { throw "не собран $name" }
+          }
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: strazh-windows
+          path: dist/
+          retention-days: 14

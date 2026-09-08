@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "comment": "Мнимая защита: программы, которые находят несуществующие угрозы и продают их устранение. От предыдущего раздела отличаются тем, что вреден сам замысел, а не способ распространения.",
+  "targets": [
+    {
+      "id": "segurazo-santivirus",
+      "name": "Segurazo / SAntivirus",
+      "vendor": "Digital Communications",
+      "category": "rogue-security",
+      "severity": "high",
+      "why": "Ставится без явного согласия, показывает завышенные результаты проверки, мешает собственному удалению и восстанавливается после него. Признан нежелательным большинством антивирусных лабораторий.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "santivirus.exe", "segurazo.exe", "segurazoscanner.exe", "sasvc.exe",
+          "santivirusservice.exe", "segurazoservice.exe", "svaupdater.exe"
+        ],
+        "installers": ["segurazo*.exe", "santivirus*.exe", "*sasetup*.exe"],
+        "publishers": ["Digital Communications", "Segurazo", "SAntivirus"],
+        "paths": ["*\\Segurazo\\*", "*\\SAntivirus\\*"],
+        "services": ["SegurazoService", "SAntivirusService"],
+        "domains": ["segurazo.com", "santivirus.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "bytefence",
+      "name": "ByteFence Anti-Malware",
+      "vendor": "Byte Technologies",
+      "category": "rogue-security",
+      "severity": "high",
+      "why": "Приезжает довеском к бесплатным программам, показывает вымышленные находки и меняет поиск в браузере.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": ["bytefence.exe", "bytefenceservice.exe", "bytefenceinstaller.exe"],
+        "installers": ["bytefence*.exe"],
+        "publishers": ["Byte Technologies", "ByteFence"],
+        "paths": ["*\\ByteFence\\*"],
+        "services": ["ByteFence"],
+        "domains": ["bytefence.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "spyhunter",
+      "name": "SpyHunter",
+      "vendor": "EnigmaSoft",
+      "category": "rogue-security",
+      "severity": "high",
+      "why": "Показывает найденные угрозы, но требует платную подписку для их устранения, навязчиво напоминает о себе и трудно удаляется. Издатель судился с теми, кто называл продукт нежелательным.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": ["spyhunter*.exe", "sh4service.exe", "enigmasoft*.exe", "spyhunter4.exe"],
+        "installers": ["spyhunter*install*.exe", "sh*setup*.exe"],
+        "publishers": ["EnigmaSoft", "Enigma Software"],
+        "paths": ["*\\EnigmaSoft\\*", "*\\SpyHunter\\*"],
+        "services": ["SpyHunter 4 Service", "SpyHunter5Service"],
+        "domains": ["enigmasoftware.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "reimage-restoro-fortect",
+      "name": "Reimage Repair / Restoro / Fortect",
+      "vendor": "Reimage, Restoro, Fortect",
+      "category": "rogue-security",
+      "severity": "high",
+      "why": "Три поколения одного подхода: бесплатная проверка всегда находит сотни «ошибок», исправление требует оплаты. Раздаётся всплывающей рекламой и поддельными предупреждениями системы.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "reimage*.exe", "reimagepackage.exe", "restoro*.exe", "fortect*.exe",
+          "restoroservice.exe", "fortectservice.exe"
+        ],
+        "installers": ["reimage*repair*.exe", "restoro*setup*.exe", "fortect*setup*.exe"],
+        "publishers": ["Reimage", "Restoro", "Fortect"],
+        "paths": ["*\\Reimage\\*", "*\\Restoro\\*", "*\\Fortect\\*"],
+        "services": ["ReimageRealTimeProtector", "RestoroService", "FortectService"],
+        "domains": ["reimageplus.com", "restoro.com", "fortect.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "pc-accelerate-family",
+      "name": "PC Accelerate / PC Optimizer Pro / MyCleanPC / One Safe PC Cleaner",
+      "vendor": "разные",
+      "category": "rogue-security",
+      "severity": "high",
+      "why": "Семейство «ускорителей» с одинаковым поведением: вымышленные находки, платное исправление, установка довеском.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "pcaccelerate*.exe", "pcoptimizerpro*.exe", "mycleanpc*.exe", "onesafepccleaner*.exe",
+          "pccleaner*.exe", "pcspeedup*.exe", "systemhealer*.exe"
+        ],
+        "installers": ["pcaccelerate*.exe", "mycleanpc*.exe", "onesafe*.exe", "pcoptimizer*.exe"],
+        "publishers": ["PC Accelerate", "OneSafe Software", "MyCleanPC"],
+        "paths": ["*\\PC Accelerate*\\*", "*\\OneSafe PC Cleaner\\*", "*\\MyCleanPC\\*"]
+      },
+      "actions": ["block_exec", "block_install"]
+    }
+  ]
+}

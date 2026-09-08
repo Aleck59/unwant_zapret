@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "comment": "Китайские защитные пакеты. Собраны в отдельный раздел не по происхождению, а по одинаковому поведению: пакет ставит собственную службу с правами системы, вешает драйвер, вписывается в автозапуск несколькими способами сразу, подменяет домашнюю страницу и тянет за собой остальные продукты того же издателя. Удаление штатным способом обычно оставляет часть служб на месте.",
+  "targets": [
+    {
+      "id": "qihoo-360",
+      "name": "360 Total Security / 360 Safeguard",
+      "vendor": "Qihoo 360",
+      "category": "cn-security-suite",
+      "severity": "high",
+      "why": "Ставит несколько служб и драйвер самозащиты, подменяет домашнюю страницу и поиск, устанавливает остальные продукты издателя без отдельного согласия. Известен приёмами противодействия удалению.",
+      "references": [
+        "https://en.wikipedia.org/wiki/Qihoo_360",
+        "https://malwaretips.com/threads/chinese-antivirus-is-it-trustworthy-to-use-it.60189/"
+      ],
+      "match": {
+        "executables": [
+          "360tray.exe", "360safe.exe", "360sd.exe", "360rp.exe", "360rps.exe",
+          "zhudongfangyu.exe", "360speedld.exe", "360leakfixer.exe", "360netcfg.exe",
+          "qhsafetray.exe", "qhactivedefense.exe", "qhsafemain.exe", "liveupdate360.exe",
+          "360entclient.exe", "360bdoctor.exe", "360mobilemgr.exe", "360se.exe",
+          "360deepscan.exe", "360skylarsvc.exe", "360wallpaper.exe"
+        ],
+        "installers": ["360ts_setup*.exe", "360*setup*.exe", "*360totalsecurity*.exe", "setup360*.exe"],
+        "publishers": ["Qihoo 360", "Beijing Qihu", "360.cn", "Qihu 360"],
+        "product_names": ["360 Total Security", "360 Safeguard", "360安全卫士"],
+        "paths": ["*\\360\\*", "*\\360Safe\\*", "*\\360TotalSecurity\\*"],
+        "services": ["360rp", "ZhuDongFangYu", "360svcHost", "360AntiHacker", "360Netmon", "360SPTool"],
+        "scheduled_tasks": ["*360*"],
+        "domains": ["360totalsecurity.com", "360safe.com", "360.cn", "so.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services", "block_domains"]
+    },
+    {
+      "id": "tencent-pc-manager",
+      "name": "Tencent PC Manager (腾讯电脑管家)",
+      "vendor": "Tencent",
+      "category": "cn-security-suite",
+      "severity": "high",
+      "why": "Приходит вместе с QQ и другими продуктами издателя, ставит службы с правами системы, добавляет собственный магазин программ и обновляльщик, самостоятельно доустанавливает соседние продукты.",
+      "references": ["https://en.wikipedia.org/wiki/360_v._Tencent"],
+      "match": {
+        "executables": [
+          "qqpctray.exe", "qqpcmgr.exe", "qqpcrtp.exe", "qqpcpatch.exe",
+          "qqpcrealtimespeedup.exe", "qqpcnetflow.exe", "qqpcsoftgameupdate.exe",
+          "qqpcleak.exe", "qqpcmgr_setup*.exe", "qqpctray64.exe", "qqpcexternal.exe"
+        ],
+        "installers": ["*qqpcmgr*.exe", "*pcmgr*setup*.exe", "*guanjia*.exe"],
+        "publishers": ["Tencent", "腾讯"],
+        "product_names": ["QQPCMgr", "Tencent PC Manager"],
+        "paths": ["*\\Tencent\\QQPCMgr\\*"],
+        "services": ["QMEmulatorService", "QPCRTP", "TAMSvc", "QQPCMgrService", "QMUsbGuard"],
+        "scheduled_tasks": ["*QQPCMgr*", "*Tencent*Update*"],
+        "domains": ["guanjia.qq.com", "pcmgr.qq.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "baidu-security",
+      "name": "Baidu Antivirus / Baidu PC Faster (百度卫士)",
+      "vendor": "Baidu",
+      "category": "cn-security-suite",
+      "severity": "high",
+      "why": "Классический довесок сторонних установщиков. Подменяет поиск и домашнюю страницу, ставит службы и обновляльщик, показывает рекламу в собственных окнах. Регулярно попадает в списки нежелательных программ.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "baiduan.exe", "baidusdsvc.exe", "baidusdtray.exe", "baiduhips.exe",
+          "baiduansvc.exe", "baidupcfaster.exe", "pcfastertray.exe", "bdmain.exe",
+          "baidusd.exe", "baiduantivirus.exe", "bddownloader.exe", "baiduyunguanjia.exe"
+        ],
+        "installers": ["*baidu*setup*.exe", "*pcfaster*.exe", "baidu*install*.exe"],
+        "publishers": ["Baidu", "百度"],
+        "product_names": ["Baidu PC Faster", "Baidu Antivirus", "百度卫士"],
+        "paths": ["*\\Baidu\\*", "*\\BaiduAntivirus\\*", "*\\Baidu Security\\*"],
+        "services": ["BaiduAnSvc", "BaiduHips", "BaiduSdSvc", "BaiduAnService", "BaiduYunGuanjia"],
+        "scheduled_tasks": ["*Baidu*"],
+        "domains": ["antivirus.baidu.com", "pcfaster.baidu.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "kingsoft-cheetah",
+      "name": "Kingsoft Antivirus / Duba / Clean Master (猎豹)",
+      "vendor": "Kingsoft, Cheetah Mobile",
+      "category": "cn-security-suite",
+      "severity": "high",
+      "why": "Семейство «чистильщиков» и антивирусов Cheetah Mobile. Приложения издателя удаляли из магазинов за приписывание себе чужих установок и показ рекламы поверх системы; настольные версии ставят службы и собственный обновляльщик.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "kxetray.exe", "kxescore.exe", "kxemain.exe", "kislive.exe", "kscan.exe",
+          "kwsprotect64.exe", "kbasesrv.exe", "kxecenter.exe", "kxeupd.exe",
+          "cmcleanmaster.exe", "cmpshost.exe", "liebaoupdate.exe", "liebao.exe",
+          "duba.exe", "kingsoftantivirus.exe", "kxeserv.exe"
+        ],
+        "installers": ["*duba*setup*.exe", "*cleanmaster*.exe", "*liebao*.exe", "kingsoft*setup*.exe"],
+        "publishers": ["Kingsoft", "Cheetah Mobile", "金山", "猎豹"],
+        "product_names": ["Clean Master", "Duba", "Kingsoft Antivirus"],
+        "paths": ["*\\Kingsoft\\*", "*\\cmcm\\*", "*\\Duba\\*", "*\\liebao\\*"],
+        "services": ["kxescore", "kxesapp", "kbasesrv", "KSafeSvc", "CleanMasterService"],
+        "scheduled_tasks": ["*Duba*", "*CleanMaster*", "*liebao*"],
+        "domains": ["duba.net", "cmcm.com", "liebao.cn", "ijinshan.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "2345-suite",
+      "name": "2345 Security Guard / 2345 Explorer (2345安全卫士)",
+      "vendor": "2345.com",
+      "category": "cn-security-suite",
+      "severity": "high",
+      "why": "Один из самых навязчивых довесков: перехватывает домашнюю страницу и поиск, ставит собственный браузер и просмотрщик, восстанавливает себя после удаления через задание планировщика.",
+      "match": {
+        "executables": [
+          "2345explorer.exe", "2345mpcsafe.exe", "2345picviewer.exe", "2345safetray.exe",
+          "2345speed.exe", "2345browserprotect.exe", "2345softcenter.exe", "2345svc.exe",
+          "2345updatesvc.exe", "2345gamebox.exe", "2345down.exe"
+        ],
+        "installers": ["2345*setup*.exe", "*2345*install*.exe"],
+        "publishers": ["2345", "上海二三四五"],
+        "paths": ["*\\2345Soft\\*", "*\\2345*\\*"],
+        "services": ["2345SafeSvc", "2345PicSvc", "2345UpdateSvc"],
+        "scheduled_tasks": ["*2345*"],
+        "domains": ["2345.com", "2345.cn"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "xunlei-thunder",
+      "name": "Xunlei / Thunder (迅雷)",
+      "vendor": "Xunlei",
+      "category": "cn-security-suite",
+      "severity": "medium",
+      "why": "Загрузчик с собственной службой, рекламными окнами и набором соседних продуктов, которые ставятся вместе с ним. Держит фоновую раздачу трафика.",
+      "match": {
+        "executables": [
+          "thunder.exe", "thunderplatform.exe", "xlserviceplatform.exe", "xlliveud.exe",
+          "downloadkernel.exe", "xlgamebox.exe", "xlbugreport.exe", "thunderfw.exe",
+          "xldl.exe", "xlbrowser.exe"
+        ],
+        "installers": ["*thunder*setup*.exe", "*xunlei*.exe"],
+        "publishers": ["Xunlei", "迅雷"],
+        "paths": ["*\\Thunder Network\\*", "*\\Xunlei\\*"],
+        "services": ["XLServicePlatform", "ThunderService"],
+        "scheduled_tasks": ["*Thunder*", "*Xunlei*"],
+        "domains": ["xunlei.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "rising-jiangmin",
+      "name": "Rising Antivirus / Jiangmin (瑞星, 江民)",
+      "vendor": "Rising, Jiangmin",
+      "category": "cn-security-suite",
+      "severity": "medium",
+      "why": "Старые защитные пакеты со своими драйверами и службами. Конфликтуют со встроенной защитой Windows и оставляют драйверы после удаления.",
+      "match": {
+        "executables": [
+          "ravmond.exe", "rsmgrsvc.exe", "ravtask.exe", "rstray.exe", "ravext.exe",
+          "rsstub.exe", "kvmonxp.exe", "kvsrvxp.exe", "kvxp.exe", "kvcenter.exe"
+        ],
+        "installers": ["rising*setup*.exe", "jiangmin*setup*.exe"],
+        "publishers": ["Rising", "Jiangmin", "瑞星", "江民"],
+        "paths": ["*\\Rising\\*", "*\\Jiangmin\\*"],
+        "services": ["RsMgrSvc", "RavMonD", "KVSrvXP"],
+        "domains": ["rising.com.cn", "jiangmin.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "sogou-input",
+      "name": "Sogou Pinyin / Sogou Explorer (搜狗)",
+      "vendor": "Sogou",
+      "category": "cn-security-suite",
+      "severity": "medium",
+      "enabled": false,
+      "why": "Способ ввода, которым многие пользуются осознанно, поэтому запись выключена по умолчанию. Причина присутствия в каталоге: собственный обновляльщик с правами системы, отправка набранного на сервер подсказок и установка соседних продуктов издателя. Включите, если пакет не нужен.",
+      "match": {
+        "executables": [
+          "sogoucloud.exe", "sogouexplorer.exe", "sgtool.exe", "sogouimebroker.exe",
+          "sgdownload.exe", "sogoupinyin*.exe", "sohuupdate.exe"
+        ],
+        "installers": ["sogou*setup*.exe", "*sogou*install*.exe"],
+        "publishers": ["Sogou", "搜狗"],
+        "paths": ["*\\SogouInput\\*", "*\\SogouExplorer\\*"],
+        "services": ["SogouCloud", "SogouUpdate"],
+        "domains": ["sogou.com"]
+      },
+      "actions": ["block_exec", "block_install"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Обновления действий сборки. Зависимостей у программы нет — обновлять
+# нечего, а действия GitHub стареют и перестают работать.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'сборка'

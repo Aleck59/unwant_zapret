@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "comment": "Антивирусы и защитные надстройки известных издателей. Компании настоящие, и запись в каталоге — не обвинение в зловредности. Причина одна и та же у всех: продукт массово попадает на машину довеском к чужому установщику или предустановлен продавцом, ставит службы и расширения браузера, а его удаление требует отдельной утилиты издателя. Любую запись можно выключить одним щелчком, если продукт нужен.",
+  "targets": [
+    {
+      "id": "mcafee-bundle",
+      "name": "McAfee (WebAdvisor, Security Scan Plus, LiveSafe)",
+      "vendor": "McAfee",
+      "category": "av-bundleware",
+      "severity": "high",
+      "why": "Самый частый довесок установщиков Java, Adobe и драйверов, а также предустановка на новых ноутбуках. Ставит службы, расширение браузера и запланированные напоминания о продлении подписки.",
+      "references": ["https://en.wikipedia.org/wiki/Potentially_unwanted_program"],
+      "match": {
+        "executables": [
+          "mcuicnt.exe", "mcshield.exe", "mcapexe.exe", "mfemms.exe", "mfevtps.exe",
+          "mccspservicehost.exe", "ssscheduler.exe", "mcchhost.exe", "mcwebadvisor.exe",
+          "mcinstru.exe", "mcuihost.exe", "mcpvtray.exe", "mcupdmgr.exe", "modulecoreservice.exe"
+        ],
+        "installers": [
+          "mcafee*setup*.exe", "*websecurity*setup*.exe", "mcafee-security-scan*.exe",
+          "*mcafee*install*.exe", "webadvisor*.exe"
+        ],
+        "publishers": ["McAfee", "Musarubra"],
+        "product_names": ["McAfee WebAdvisor", "McAfee Security Scan", "McAfee LiveSafe"],
+        "paths": ["*\\McAfee\\*", "*\\McAfee.com\\*"],
+        "services": ["McAPExe", "mfemms", "mfevtp", "McCSPServiceHost", "McAfee WebAdvisor", "ModuleCoreService"],
+        "scheduled_tasks": ["*McAfee*"],
+        "domains": ["download.mcafee.com", "scanner.mcafee.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "avast-avg",
+      "name": "Avast / AVG (антивирус, браузер, чистильщик)",
+      "vendor": "Gen Digital (Avast, AVG)",
+      "category": "av-bundleware",
+      "severity": "high",
+      "why": "Ставит собственный браузер и расширения без отдельного согласия, добавляет несколько служб и заданий. Издатель признавал сбор и перепродажу истории просмотров пользователей бесплатной версии через дочернюю компанию Jumpshot.",
+      "references": ["https://en.wikipedia.org/wiki/Potentially_unwanted_program"],
+      "match": {
+        "executables": [
+          "avastui.exe", "avastsvc.exe", "avastbrowser.exe", "avastbrowserupdate.exe",
+          "aswidsagent.exe", "avemupdate.exe", "avlaunch.exe", "avastbrowsercrashhandler.exe",
+          "avgui.exe", "avgsvc.exe", "avgtoolsbx.exe", "avgnt.exe", "avgcsrva.exe",
+          "avgidsagent.exe", "avgwdsvc.exe", "instup.exe"
+        ],
+        "installers": [
+          "avast_free_antivirus_setup*.exe", "avast*setup*.exe", "avg_antivirus_free*.exe",
+          "avg*setup*.exe", "*avast*online*.exe", "avastclear*.exe"
+        ],
+        "publishers": ["AVAST Software", "AVG Technologies", "Avast Software s.r.o."],
+        "product_names": ["Avast Antivirus", "AVG Antivirus", "Avast Secure Browser"],
+        "paths": ["*\\AVAST Software\\*", "*\\AVG\\*"],
+        "services": ["avast! Antivirus", "AvastWscReporter", "avgSvc", "AvgWdSvc", "aswbIDSAgent"],
+        "scheduled_tasks": ["*Avast*", "*AVG*"],
+        "domains": ["avast.com", "avg.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "norton-suite",
+      "name": "Norton 360 / Norton Utilities / Norton Crypto",
+      "vendor": "Gen Digital (NortonLifeLock)",
+      "category": "av-bundleware",
+      "severity": "medium",
+      "why": "Массовая предустановка и довесок к чужим установщикам. Отдельная причина — модуль добычи криптовалюты, который приезжал с обновлением защитного пакета и включался на машине пользователя.",
+      "match": {
+        "executables": [
+          "nortonsecurity.exe", "ns.exe", "n360.exe", "nortonutilities.exe", "ncrypt.exe",
+          "nsdiag.exe", "nsservice.exe", "navw32.exe", "nortoninstaller.exe", "nortonwsc.exe"
+        ],
+        "installers": ["norton*setup*.exe", "*nortoninstaller*.exe", "n360*.exe"],
+        "publishers": ["NortonLifeLock", "Symantec", "Gen Digital"],
+        "product_names": ["Norton 360", "Norton Security", "Norton Utilities"],
+        "paths": ["*\\Norton*\\*", "*\\NortonInstaller\\*"],
+        "services": ["NortonSecurity", "Norton Utilities", "NortonWSC"],
+        "scheduled_tasks": ["*Norton*"],
+        "domains": ["norton.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "avira-suite",
+      "name": "Avira Antivirus / Software Updater / System Speedup",
+      "vendor": "Gen Digital (Avira)",
+      "category": "av-bundleware",
+      "severity": "medium",
+      "why": "Бесплатная версия постоянно предлагает платные соседние продукты собственными всплывающими окнами, ставит несколько служб и задание обновления. Часто приезжает довеском.",
+      "match": {
+        "executables": [
+          "avgnt.exe", "avguard.exe", "avira.systray.exe", "avira.oe.systray.exe",
+          "avira.servicehost.exe", "avira.spotlight.service.exe", "sched.exe",
+          "avirasystemspeedup.exe", "avira.softwareupdater.serviceapp.exe"
+        ],
+        "installers": ["avira*setup*.exe", "avira_*_av_*.exe", "*avira*install*.exe"],
+        "publishers": ["Avira"],
+        "product_names": ["Avira Antivirus", "Avira System Speedup"],
+        "paths": ["*\\Avira\\*"],
+        "services": ["AntiVirService", "AntiVirSchedulerService", "Avira.ServiceHost"],
+        "scheduled_tasks": ["*Avira*"],
+        "domains": ["avira.com"]
+      },
+      "actions": ["block_exec", "block_install", "neutralize_services"]
+    },
+    {
+      "id": "totalav-protected-net",
+      "name": "TotalAV / PC Protect / Scanguard",
+      "vendor": "Protected.net",
+      "category": "av-bundleware",
+      "severity": "high",
+      "why": "Три названия одного продукта. Раздаётся навязчивой рекламой и всплывающими «проверками системы», показывает завышенное число найденных проблем и продаёт подписку с автоматическим продлением.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "totalav.exe", "totalavservice.exe", "pcprotect.exe", "scanguard.exe",
+          "totalavwebshield.exe", "safebrowsing.exe"
+        ],
+        "installers": ["totalav*setup*.exe", "*totalav*.exe", "pcprotect*.exe", "scanguard*.exe"],
+        "publishers": ["Protected.net", "TotalAV", "Total Security Limited"],
+        "product_names": ["TotalAV", "PC Protect", "Scanguard"],
+        "paths": ["*\\TotalAV\\*", "*\\PC Protect\\*", "*\\Scanguard\\*"],
+        "services": ["TotalAVService", "PCProtectService"],
+        "domains": ["totalav.com", "pcprotect.com", "scanguard.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    },
+    {
+      "id": "ccleaner",
+      "name": "CCleaner",
+      "vendor": "Gen Digital (Piriform)",
+      "category": "av-bundleware",
+      "severity": "low",
+      "enabled": false,
+      "why": "Запись выключена: программой пользуются осознанно. Причины присутствия в каталоге — раздача заражённой сборки через официальный сайт в 2017 году, добавленный после смены владельца сбор сведений и постоянные предложения платной версии. Включите, если решили от неё отказаться.",
+      "match": {
+        "executables": ["ccleaner.exe", "ccleaner64.exe", "ccupdate.exe", "ccleanerbrowser.exe"],
+        "installers": ["ccsetup*.exe", "ccleaner*setup*.exe"],
+        "publishers": ["Piriform"],
+        "product_names": ["CCleaner"],
+        "paths": ["*\\CCleaner\\*"],
+        "scheduled_tasks": ["CCleaner*"]
+      },
+      "actions": ["block_exec", "block_install"]
+    },
+    {
+      "id": "adaware-webcompanion",
+      "name": "Adaware / Web Companion",
+      "vendor": "Adaware (Lavasoft)",
+      "category": "av-bundleware",
+      "severity": "high",
+      "why": "Web Companion ставится довеском и меняет поиск и домашнюю страницу браузера, выдавая это за защиту. Классический перехватчик браузера.",
+      "references": ["https://blog.toolslib.net/2025/06/03/list-of-common-potentially-unwanted-programs-pups/"],
+      "match": {
+        "executables": [
+          "webcompanion.exe", "webcompanioninstaller.exe", "adaware*.exe",
+          "adawareantivirus.exe", "adawareservice.exe", "lavasoft*.exe"
+        ],
+        "installers": ["webcompanion*.exe", "adaware*setup*.exe"],
+        "publishers": ["Adaware", "Lavasoft"],
+        "product_names": ["Web Companion", "Adaware Antivirus"],
+        "paths": ["*\\Lavasoft\\*", "*\\Adaware\\*"],
+        "services": ["WebCompanion", "Adaware Service"],
+        "domains": ["adaware.com", "webcompanion.com"]
+      },
+      "actions": ["block_exec", "block_install", "block_network", "neutralize_services"]
+    }
+  ]
+}
