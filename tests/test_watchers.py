@@ -325,24 +325,24 @@ class TestIdleCost:
         assert watcher._candidates(downloads) == [ordinary]
         assert watcher._candidates(downloads) == [], "файл разобран повторно"
 
-    def test_huge_folder_is_examined_in_parts(self, core: Strazh, tmp_path: Path) -> None:
-        """Во временной папке бывают десятки тысяч файлов. Один проход не
-        должен превращаться в обход всего диска."""
-        from strazh.watch import downloads as downloads_mod
+    def test_big_folder_is_examined_whole(self, core: Strazh, tmp_path: Path) -> None:
+        """Ограничение на число записей за проход было бы не экономией, а
+        слепотой: перечисление всегда начинается сначала, и всё за пределом
+        предела не просматривалось бы никогда."""
+        import os as os_mod
 
         folder = tmp_path / "temp"
         folder.mkdir()
-        for index in range(50):
-            (folder / f"файл-{index}.txt").write_bytes(b"x")
+        old = time.time() - 60
+        for index in range(5000):
+            (folder / f"мусор-{index}.dat").write_bytes(b"")
+        installer = folder / "яяя-360TS_Setup_Mini.exe"
+        installer.write_bytes(b"MZ")
+        for path in folder.iterdir():
+            os_mod.utime(path, (old, old))
 
-        monkey = downloads_mod.MAX_ENTRIES_PER_PASS
-        try:
-            downloads_mod.MAX_ENTRIES_PER_PASS = 10
-            core.settings.watch_dirs = [str(folder)]
-            watcher = DownloadWatcher(core)
-            assert watcher._candidates(folder) == []
-        finally:
-            downloads_mod.MAX_ENTRIES_PER_PASS = monkey
+        core.settings.watch_dirs = [str(folder)]
+        assert DownloadWatcher(core)._candidates(folder) == [installer]
 
     def test_watcher_waits_instead_of_spinning(self, home: Path) -> None:
         """Поток наблюдателя обязан стоять на очереди событий, а не крутить
