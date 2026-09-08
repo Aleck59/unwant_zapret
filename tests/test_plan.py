@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from strazh.core.models import Action, MatchSpec, Target
 from strazh.enforce import plan
 
@@ -89,3 +91,42 @@ class TestOtherMechanisms:
     def test_plan_all_covers_every_mechanism(self) -> None:
         keys = set(plan.plan_all([]))
         assert keys == {"ifeo", "srp", "hash", "firewall", "hosts", "service", "task"}
+
+
+class TestDenyCommand:
+    """Значение «отладчика» обязано указывать на существующий файл.
+
+    Указывающее в пустоту выглядит работающим перехватом, а на деле оставляет
+    человека наедине с ошибкой запуска без объяснения.
+    """
+
+    def test_command_points_at_something_that_exists(self, monkeypatch) -> None:
+        from strazh.enforce.windows.ifeo import deny_command
+
+        monkeypatch.delenv("SystemRoot", raising=False)
+        command = deny_command()
+        assert command is not None, "обработчик из исходников должен находиться"
+        first = command.split('" "')[0].strip('"')
+        assert Path(first).exists()
+
+    def test_mechanism_refuses_to_work_without_a_handler(self, monkeypatch) -> None:
+        from strazh.enforce.windows import ifeo
+
+        # Притворяемся Windows: иначе механизм откажется раньше и по другой,
+        # тоже верной причине — «этого механизма тут нет».
+        monkeypatch.setattr(ifeo.sys, "platform", "win32")
+        mechanism = ifeo.IfeoMechanism.__new__(ifeo.IfeoMechanism)
+        mechanism._command = None
+        ok, why = mechanism.available()
+        assert not ok
+        assert "обработчик" in why
+
+    def test_apply_without_handler_reports_failure(self) -> None:
+        from strazh.core.state import State
+        from strazh.enforce.windows.ifeo import IfeoMechanism
+
+        mechanism = IfeoMechanism.__new__(IfeoMechanism)
+        mechanism._command = None
+        result = mechanism.apply([t(match=MatchSpec(executables=("bad.exe",)))], State())
+        assert not result.ok
+        assert result.count == 0

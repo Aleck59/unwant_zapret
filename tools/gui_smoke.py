@@ -40,7 +40,7 @@ def main() -> int:
             window.update_idletasks()
             window.update()
             print(f"раздел «{page}» — открылся")
-        except Exception:  # noqa: BLE001 - в проверке нужен весь разбор
+        except Exception:
             failures.append(page)
             traceback.print_exc()
 
@@ -53,7 +53,7 @@ def main() -> int:
         assert dialog.result is not None
         assert dialog.result.match.executables == ("checkme.exe",)
         print("добавление цели — работает")
-    except Exception:  # noqa: BLE001
+    except Exception:
         failures.append("добавление цели")
         traceback.print_exc()
 
@@ -70,7 +70,7 @@ def main() -> int:
         assert guard.result is None, "окно позволило завести правило на системный файл"
         assert shown, "окно не предупредило о системном файле"
         print("защита от блокировки системных файлов — работает")
-    except Exception:  # noqa: BLE001
+    except Exception:
         failures.append("защита от блокировки системных файлов")
         traceback.print_exc()
 

@@ -27,40 +27,63 @@ IFEO_PATH = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution 
 MECHANISM = "ifeo"
 
 
-def deny_stub_path() -> str:
+def deny_command() -> str | None:
     """Чем подменять запуск.
 
-    Свой обработчик показывает человеку, что и почему остановлено, и пишет
-    строку в журнал. Если его рядом нет (запуск из исходников), берётся
-    `systray.exe` — старый системный файл, который просто немедленно
-    завершается. Пустой строки здесь быть не должно: значение, указывающее
-    на несуществующий файл, оставит человека наедине с ошибкой запуска без
-    объяснений.
+    Значение «отладчика» обязано указывать на файл, который существует.
+    Указывающее в пустоту оставит человека наедине с ошибкой запуска без
+    единого слова о том, кто и почему остановил программу, — а перехват
+    ключа при этом будет выглядеть работающим.
+
+    Поэтому кандидаты перебираются по убыванию пригодности, и каждый
+    проверяется на существование. Если не подошёл ни один, механизм честно
+    объявляет себя недоступным вместо того, чтобы записать негодное значение.
     """
-    base = Path(sys.executable).parent if getattr(sys, "frozen", False) else None
-    if base is not None:
-        candidate = base / "strazh-deny.exe"
-        if candidate.exists():
-            return str(candidate)
+    if getattr(sys, "frozen", False):
+        stub = Path(sys.executable).parent / "strazh-deny.exe"
+        if stub.exists():
+            return f'"{stub}"'
+
+    # Запуск из исходников: обработчик — обычный сценарий, и его умеет
+    # запустить тот же самый Python.
+    source_stub = Path(__file__).resolve().parents[4] / "packaging" / "deny_stub.py"
+    if source_stub.exists() and Path(sys.executable).exists():
+        return f'"{sys.executable}" "{source_stub}"'
+
+    # Последняя возможность: системная заглушка, которая просто немедленно
+    # завершается. Она есть не во всех сборках Windows, поэтому проверяется.
     system_root = os.environ.get("SystemRoot", r"C:\Windows")
-    return str(Path(system_root) / "System32" / "systray.exe")
+    systray = Path(system_root) / "System32" / "systray.exe"
+    if systray.exists():
+        return f'"{systray}"'
+    return None
 
 
 class IfeoMechanism(Mechanism):
     key = MECHANISM
     title = "Перехват запуска по имени файла"
 
-    def __init__(self, stub: str | None = None) -> None:
-        self._stub = stub or deny_stub_path()
+    def __init__(self, command: str | None = None) -> None:
+        self._command = command or deny_command()
 
     def available(self) -> tuple[bool, str]:
         if sys.platform != "win32":
             return False, "механизм есть только в Windows"
+        if not self._command:
+            return False, "не найден обработчик заблокированного запуска"
         return True, ""
 
     def apply(self, targets: list[Target], state: State) -> StepResult:
         ops = planner.plan_ifeo(targets)
-        command = f'"{self._stub}"'
+        command = self._command
+        if not command:
+            return StepResult(
+                mechanism=self.key,
+                title=self.title,
+                ok=False,
+                count=0,
+                message="не найден обработчик заблокированного запуска",
+            )
         done = 0
         failed: list[str] = []
         for op in ops:

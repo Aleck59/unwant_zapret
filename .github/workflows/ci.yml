@@ -31,8 +31,8 @@ jobs:
     name: Разбор кода
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -51,8 +51,8 @@ jobs:
     name: Каталог целей
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Проверить файлы каталога
@@ -67,8 +67,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ['3.11', '3.12']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -88,7 +88,7 @@ jobs:
     name: Окно на подставном экране
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Поставить tkinter и Xvfb
         # Берём системный Python: сборки actions/setup-python зависят от
         # библиотек Tk, которых на образе может не оказаться, а системный
@@ -104,8 +104,8 @@ jobs:
     runs-on: windows-latest
     needs: [lint, test]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
